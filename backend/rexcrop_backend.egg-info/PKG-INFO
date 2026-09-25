@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: rexcrop-backend
+Version: 0.1.0
+Summary: RexCrop FastAPI backend
+Requires-Python: >=3.11
+Requires-Dist: bcrypt<5.0,>=4.2
+Requires-Dist: email-validator<3.0,>=2.2
+Requires-Dist: faster-whisper<2.0,>=1.1
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: openai<3.0,>=1.0
+Requires-Dist: PyJWT<3.0,>=2.10
+Requires-Dist: python-multipart<1.0,>=0.0.20
+Requires-Dist: sqlalchemy<3.0,>=2.0
+Requires-Dist: uvicorn[standard]<1.0,>=0.30

@@ -1,0 +1,13 @@
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+backend/.venv/
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/*.db
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+backend/.env
+frontend/.env*.local
+.DS_Store
+.vscode/

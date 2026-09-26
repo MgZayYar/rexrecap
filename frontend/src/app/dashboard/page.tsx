@@ -4,14 +4,14 @@ import { LogoutButton } from "@/components/logout-button";
 import { JobStatus } from "@/components/job-status";
 import { VideoJobActions } from "@/components/video-job-actions";
 import { Button } from "@/components/ui/button";
-import { backendFetch } from "@/lib/backend";
+import { backendFetchWithAuth } from "@/lib/server-backend";
 import { getServerSession } from "@/lib/server-auth";
 import { formatFileSize, type Video } from "@/lib/video";
 
 export default async function DashboardPage() {
   const session = await getServerSession();
   if (!session) redirect("/login");
-  const videosResponse = await backendFetch("/videos", { headers: { Authorization: `Bearer ${session.token}` } });
+  const videosResponse = await backendFetchWithAuth("/videos");
   const videos = videosResponse.ok ? (await videosResponse.json()) as Video[] : [];
 
   return (

@@ -6,8 +6,9 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
-from app.core.config import UPLOADS_DIR
+from app.core.config import MAX_UPLOAD_BYTES, UPLOADS_DIR
 from app.models.video import Video
+from app.repositories.videos import get_owned_video
 from app.schemas.video import VideoResponse
 
 router = APIRouter(prefix="/videos", tags=["videos"])
@@ -16,8 +17,8 @@ ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi"}
 ALLOWED_CONTENT_TYPES = {"video/mp4", "video/quicktime", "video/x-matroska", "video/x-msvideo"}
 
 
-def get_owned_video(video_id: int, current_user: CurrentUser, db: DbSession) -> Video:
-    video = db.scalar(select(Video).where(Video.id == video_id, Video.user_id == current_user.id))
+def require_owned_video(video_id: int, current_user: CurrentUser, db: DbSession) -> Video:
+    video = get_owned_video(db, video_id, current_user.id)
     if video is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
     return video
@@ -45,6 +46,11 @@ async def upload_video(
         with destination.open("wb") as output:
             while chunk := await file.read(1024 * 1024):
                 size_bytes += len(chunk)
+                if size_bytes > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=f"Video exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB upload limit",
+                    )
                 output.write(chunk)
         if size_bytes == 0:
             destination.unlink(missing_ok=True)
@@ -63,6 +69,7 @@ async def upload_video(
         db.refresh(video)
         return video
     except HTTPException:
+        destination.unlink(missing_ok=True)
         raise
     except Exception as exc:
         db.rollback()
@@ -79,7 +86,7 @@ def list_videos(current_user: CurrentUser, db: DbSession) -> list[Video]:
 
 @router.get("/{video_id}/download")
 def download_video(video_id: int, current_user: CurrentUser, db: DbSession) -> FileResponse:
-    video = get_owned_video(video_id, current_user, db)
+    video = require_owned_video(video_id, current_user, db)
     path = UPLOADS_DIR / video.stored_filename
     if not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video file not found")
@@ -88,7 +95,7 @@ def download_video(video_id: int, current_user: CurrentUser, db: DbSession) -> F
 
 @router.get("/{video_id}/playback")
 def playback_video(video_id: int, current_user: CurrentUser, db: DbSession) -> FileResponse:
-    video = get_owned_video(video_id, current_user, db)
+    video = require_owned_video(video_id, current_user, db)
     path = UPLOADS_DIR / video.stored_filename
     if not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video file not found")

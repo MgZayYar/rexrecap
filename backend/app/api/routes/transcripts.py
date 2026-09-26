@@ -2,27 +2,22 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
-from app.models.processing_job import ProcessingJob
 from app.models.transcript import Transcript
 from app.models.video import Video
+from app.repositories.videos import get_owned_video
 from app.schemas.job import ProcessingJobResponse
 from app.schemas.transcript import TranscriptResponse
-from app.workers.queue import job_queue
+from app.services.jobs import create_job as queue_processing_job
 
 router = APIRouter(prefix="/transcripts", tags=["transcripts"])
 
 
 @router.post("/start/{video_id}", response_model=ProcessingJobResponse, status_code=status.HTTP_201_CREATED)
-async def start_transcription(video_id: int, current_user: CurrentUser, db: DbSession) -> ProcessingJob:
-    video = db.scalar(select(Video).where(Video.id == video_id, Video.user_id == current_user.id))
+async def start_transcription(video_id: int, current_user: CurrentUser, db: DbSession) -> ProcessingJobResponse:
+    video = get_owned_video(db, video_id, current_user.id)
     if video is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
-    job = ProcessingJob(video_id=video.id, job_type="transcription", status="queued", progress=0)
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-    await job_queue.enqueue(job.id)
-    return job
+    return await queue_processing_job(db, video.id, "transcription")
 
 
 @router.get("/{video_id}", response_model=TranscriptResponse)

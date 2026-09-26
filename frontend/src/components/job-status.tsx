@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { apiGet } from "@/lib/api-client";
 import { estimatedState, type ProcessingJob } from "@/lib/job";
 
 type JobStatusProps = { videoId: number };
@@ -14,10 +15,10 @@ export function JobStatus({ videoId }: JobStatusProps) {
     let active = true;
     async function load() {
       try {
-        const response = await fetch(`/api/jobs/video/${videoId}`, { cache: "no-store" });
-        if (!response.ok) return;
-        const jobs = (await response.json()) as ProcessingJob[];
+        const jobs = await apiGet<ProcessingJob[]>(`/api/jobs/video/${videoId}`);
         if (active) setJob(jobs[0] ?? null);
+      } catch {
+        // Keep the last known job on transient failures.
       } finally {
         if (active) setIsLoading(false);
       }

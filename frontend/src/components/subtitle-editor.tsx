@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { apiGet, toMessage } from "@/lib/api-client";
 import { defaultSubtitleStyle, makeCues, toAss, toSrt, type SubtitleCue, type SubtitleStyle } from "@/lib/subtitle";
 import type { Transcript } from "@/lib/transcript";
 
@@ -40,12 +41,13 @@ export function SubtitleEditor({ videoId }: { videoId: number }) {
 
   useEffect(() => {
     async function load() {
-      const response = await fetch(`/api/transcripts/${videoId}`, { cache: "no-store" });
-      if (!response.ok) {
-        setError(response.status === 404 ? "Generate a transcript before opening the subtitle editor." : "Unable to load the transcript.");
+      let transcript: Transcript;
+      try {
+        transcript = await apiGet<Transcript>(`/api/transcripts/${videoId}`);
+      } catch (err) {
+        setError(toMessage(err, "Unable to load the transcript."));
         return;
       }
-      const transcript = (await response.json()) as Transcript;
       const initial = makeCues(transcript.segments);
       setCues(initial);
       setHistory([initial]);

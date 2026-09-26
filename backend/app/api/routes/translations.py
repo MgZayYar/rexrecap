@@ -7,6 +7,7 @@ from app.models.transcript import Transcript
 from app.models.translation import Translation
 from app.models.video import Video
 from app.schemas.translation import CreateTranslationRequest, TranslationJobResponse, TranslationResponse
+from app.services.jobs import create_job_record, enqueue_job
 from app.services.languages import get_language_name
 from app.workers.queue import job_queue
 
@@ -48,9 +49,7 @@ async def start_translation(payload: CreateTranslationRequest, current_user: Cur
         await job_queue.enqueue(job.id)
         return TranslationJobResponse(job=job, translation=translation)
 
-    job = ProcessingJob(video_id=payload.video_id, job_type="translation", status="queued", progress=0)
-    db.add(job)
-    db.flush()
+    job = create_job_record(db, payload.video_id, "translation")
     translation = Translation(
         transcript_id=transcript.id,
         job_id=job.id,
@@ -61,7 +60,7 @@ async def start_translation(payload: CreateTranslationRequest, current_user: Cur
     db.commit()
     db.refresh(job)
     db.refresh(translation)
-    await job_queue.enqueue(job.id)
+    await enqueue_job(job)
     return TranslationJobResponse(job=job, translation=translation)
 
 

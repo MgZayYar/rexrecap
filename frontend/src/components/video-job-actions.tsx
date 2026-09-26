@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { apiPost, toMessage } from "@/lib/api-client";
 import type { ProcessingJob } from "@/lib/job";
 
 const actions: Array<{ jobType: ProcessingJob["job_type"]; label: string }> = [
@@ -19,18 +20,14 @@ export function VideoJobActions({ videoId }: { videoId: number }) {
   async function start(jobType: ProcessingJob["job_type"]) {
     setStarting(jobType);
     setMessage(null);
-    const response = await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ video_id: videoId, job_type: jobType }),
-    });
-    setStarting(null);
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setMessage(body?.detail ?? "Unable to start job.");
-      return;
+    try {
+      await apiPost("/api/jobs", { video_id: videoId, job_type: jobType });
+      setMessage(`${actions.find((action) => action.jobType === jobType)?.label} job queued.`);
+    } catch (err) {
+      setMessage(toMessage(err, "Unable to start job."));
+    } finally {
+      setStarting(null);
     }
-    setMessage(`${actions.find((action) => action.jobType === jobType)?.label} job queued.`);
   }
 
   return <div className="space-y-2">

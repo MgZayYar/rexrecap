@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiPost, toMessage } from "@/lib/api-client";
 
 type AuthFormProps = { mode: "login" | "register" };
 
@@ -28,17 +29,13 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     setError(null);
     setIsSubmitting(true);
-    const response = await fetch(`/api/auth/${mode}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setError(body?.detail ?? "Unable to continue. Please try again.");
+    try {
+      await apiPost(`/api/auth/${mode}`, { email, password });
+    } catch (err) {
+      setError(toMessage(err, "Unable to continue. Please try again."));
       return;
+    } finally {
+      setIsSubmitting(false);
     }
     router.replace("/dashboard");
     router.refresh();

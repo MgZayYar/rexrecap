@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.ai.whisper.audio import extract_audio
+from app.video.ffmpeg import extract_audio
 from app.ai.whisper.transcriber import transcribe_audio
 from app.core.config import UPLOADS_DIR
 from app.db.session import SessionLocal

@@ -1,49 +1,60 @@
 # API
 
-All API routes are prefixed with `/api`. Protected routes require `Authorization: Bearer <JWT>`.
+All routes are served under the canonical `/api/v1` prefix. The unversioned `/api` prefix serves the same routes for backward compatibility; new clients should use `/api/v1`.
+
+Protected routes require `Authorization: Bearer <JWT>`. The Next.js frontend keeps the token in an HTTP-only cookie and attaches it in its backend-for-frontend handlers, so browser code never handles the token directly.
+
+Errors are JSON: `{ "detail": "<message>" }`.
 
 ## Authentication
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/auth/register` | Create an account with email and password. |
+| POST | `/auth/register` | Create an account with email and password. Returns 201. |
 | POST | `/auth/login` | Return a JWT access token. |
 | GET | `/auth/me` | Return the authenticated user. |
+
+## Projects
+
+Projects are user-owned containers that group a user's work. Every project route is ownership-scoped: users can only see and mutate their own projects.
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/projects` | Create a project. Body: `{ "name", "description?" }`. Names are trimmed and must not be blank. Returns 201. |
+| GET | `/projects` | List the current user's projects. |
+| GET | `/projects/{project_id}` | Get one owned project. 404 if missing or owned by someone else. |
+| PATCH | `/projects/{project_id}` | Update `name`, `description`, or `status` (`active` \| `archived`). |
+| DELETE | `/projects/{project_id}` | Delete an owned project. Returns 204. |
 
 ## Videos
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. |
+| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. Enforces the `MAX_UPLOAD_BYTES` limit (413 when exceeded). Returns 201. |
 | GET | `/videos` | List the current user's videos. |
 | GET | `/videos/{video_id}/download` | Download an owned video. |
+| GET | `/videos/{video_id}/playback` | Stream an owned video (supports `Range` requests). |
 
-## Processing jobs
+## Jobs
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/jobs/create` | Queue a job with `video_id` and `job_type`. |
-| GET | `/jobs/{job_id}` | Return an owned job. |
-| GET | `/jobs/video/{video_id}` | Return jobs for an owned video, newest first. |
+| POST | `/jobs/create` | Queue a job. Body: `{ "video_id", "job_type" }`. Returns 201. |
+| GET | `/jobs/video/{video_id}` | List jobs for an owned video, newest first. |
+| GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
 
-Allowed `job_type` values: `transcription`, `translation`, `dubbing`, `autocrop`, and `render`.
-
-Job statuses are `queued`, `processing`, `completed`, and `failed`.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `dubbing`, `autocrop`, and `render` workers are placeholders that simulate progress without producing output.
 
 ## Transcripts
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/transcripts/start/{video_id}` | Queue local Whisper transcription for an owned video. |
-| GET | `/transcripts/{video_id}` | Return the saved transcript for an owned video. |
-
-The transcript response includes `language`, `full_text`, and `segments`. Each segment has `start`, `end`, and `text` fields in seconds.
+| POST | `/transcripts/start/{video_id}` | Queue a transcription job for an owned video. Returns 201. |
+| GET | `/transcripts/{video_id}` | Get the transcript for an owned video. 404 when none exists yet. |
 
 ## Translations
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/translations` | Queue a translation with `video_id` and a supported ISO language code in `target_language`. A transcript is required first. |
-| GET | `/translations/video/{video_id}?target_language=es` | Return the matching completed translation for an owned video. |
-
-Translations preserve the source transcript's `start` and `end` timestamps. Reposting a failed translation retries its persisted job; reposting a completed translation returns the saved result.
+| POST | `/translations` | Queue a translation. Body: `{ "video_id", "target_language" }`. Requires an existing transcript (409 otherwise); unsupported languages return 422. |
+| GET | `/translations/video/{video_id}?target_language=<code>` | Get the translation for an owned video and language. 404 when none exists yet. |

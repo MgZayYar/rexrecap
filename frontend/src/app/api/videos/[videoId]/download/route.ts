@@ -1,18 +1,13 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { AUTH_COOKIE } from "@/lib/auth";
-import { API_URL, readError } from "@/lib/backend";
+import { readError } from "@/lib/backend";
+import { backendFetchWithAuth, getAuthToken, unauthorized } from "@/lib/server-backend";
 
 export async function GET(_: Request, { params }: { params: Promise<{ videoId: string }> }) {
-  const token = (await cookies()).get(AUTH_COOKIE)?.value;
-  if (!token) return NextResponse.json({ detail: "Not authenticated" }, { status: 401 });
+  if (!(await getAuthToken())) return unauthorized();
 
   const { videoId } = await params;
-  const response = await fetch(`${API_URL}/videos/${encodeURIComponent(videoId)}/download`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const response = await backendFetchWithAuth(`/videos/${encodeURIComponent(videoId)}/download`);
   if (!response.ok) return NextResponse.json({ detail: await readError(response) }, { status: response.status });
 
   return new NextResponse(response.body, {

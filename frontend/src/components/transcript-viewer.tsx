@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TranslationViewer } from "@/components/translation-viewer";
+import { apiGet, apiPost, ApiError, toMessage } from "@/lib/api-client";
 import { estimatedState, type ProcessingJob } from "@/lib/job";
 import { formatTimestamp, type Transcript } from "@/lib/transcript";
 
@@ -18,13 +19,12 @@ export function TranscriptViewer({ videoId }: { videoId: number }) {
   const player = useRef<HTMLVideoElement>(null);
 
   const loadTranscript = useCallback(async () => {
-    const response = await fetch(`/api/transcripts/${videoId}`, { cache: "no-store" });
-    if (response.ok) {
-      setTranscript((await response.json()) as Transcript);
+    try {
+      setTranscript(await apiGet<Transcript>(`/api/transcripts/${videoId}`));
       setError(null);
-    } else if (response.status !== 404) {
-      const body = await response.json().catch(() => null);
-      setError(body?.detail ?? "Unable to load transcript.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return;
+      setError(toMessage(err, "Unable to load transcript."));
     }
   }, [videoId]);
 
@@ -34,9 +34,12 @@ export function TranscriptViewer({ videoId }: { videoId: number }) {
     let active = true;
     let hasLoadedCompletedTranscript = false;
     async function loadJob() {
-      const response = await fetch(`/api/jobs/video/${videoId}`, { cache: "no-store" });
-      if (!response.ok) return;
-      const jobs = (await response.json()) as ProcessingJob[];
+      let jobs: ProcessingJob[];
+      try {
+        jobs = await apiGet<ProcessingJob[]>(`/api/jobs/video/${videoId}`);
+      } catch {
+        return;
+      }
       const transcription = jobs.find((item) => item.job_type === "transcription") ?? null;
       if (!active) return;
       setJob(transcription);
@@ -61,14 +64,13 @@ export function TranscriptViewer({ videoId }: { videoId: number }) {
   async function start() {
     setIsStarting(true);
     setError(null);
-    const response = await fetch(`/api/transcripts/${videoId}`, { method: "POST" });
-    setIsStarting(false);
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setError(body?.detail ?? "Unable to start transcription.");
-      return;
+    try {
+      setJob(await apiPost<ProcessingJob>(`/api/transcripts/${videoId}`));
+    } catch (err) {
+      setError(toMessage(err, "Unable to start transcription."));
+    } finally {
+      setIsStarting(false);
     }
-    setJob((await response.json()) as ProcessingJob);
   }
 
   async function copyText() {

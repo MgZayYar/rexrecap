@@ -48,6 +48,17 @@ export function apiPost<T>(path: string, body?: unknown, init?: RequestInit): Pr
   return apiFetch<T>(path, { ...init, method: "POST", headers, body: payload });
 }
 
+export function apiPatch<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  const payload = body === undefined ? undefined : JSON.stringify(body);
+  if (payload !== undefined && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  return apiFetch<T>(path, { ...init, method: "PATCH", headers, body: payload });
+}
+
+export function apiDelete<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiFetch<T>(path, { ...init, method: "DELETE" });
+}
+
 /** Extract a user-facing message from an unknown caught error. */
 export function toMessage(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.detail : fallback;

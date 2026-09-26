@@ -11,6 +11,8 @@ export async function POST(request: Request) {
 
   const outbound = new FormData();
   outbound.append("file", file);
+  const projectId = form.get("project_id");
+  if (typeof projectId === "string" && projectId !== "") outbound.append("project_id", projectId);
   const response = await backendFetchWithAuth("/videos/upload", { method: "POST", body: outbound });
   return proxyJson(response, 201);
 }

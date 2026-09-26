@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.project import Project
+from app.models.video import Video
 from app.repositories.projects import get_owned_project, list_user_projects
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.schemas.video import VideoResponse
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -55,3 +58,13 @@ def delete_project(project_id: int, current_user: CurrentUser, db: DbSession) ->
     project = _require_owned_project(project_id, current_user, db)
     db.delete(project)
     db.commit()
+
+
+@router.get("/{project_id}/videos", response_model=list[VideoResponse])
+def list_project_videos(project_id: int, current_user: CurrentUser, db: DbSession) -> list[Video]:
+    _require_owned_project(project_id, current_user, db)
+    return list(db.scalars(
+        select(Video)
+        .where(Video.user_id == current_user.id, Video.project_id == project_id)
+        .order_by(Video.created_at.desc())
+    ))

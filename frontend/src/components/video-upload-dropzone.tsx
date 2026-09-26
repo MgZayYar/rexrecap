@@ -4,6 +4,7 @@ import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { ProjectPicker } from "@/components/project-picker";
 
 const ALLOWED_EXTENSIONS = ["mp4", "mov", "mkv", "avi"];
 
@@ -15,6 +16,7 @@ export function VideoUploadDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [projectId, setProjectId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,6 +48,7 @@ export function VideoUploadDropzone() {
     setError(null);
     const form = new FormData();
     form.append("file", file);
+    if (projectId !== null) form.append("project_id", String(projectId));
     const request = new XMLHttpRequest();
     request.open("POST", "/api/videos/upload");
     request.upload.onprogress = (event) => {
@@ -79,6 +82,10 @@ export function VideoUploadDropzone() {
         <p className="mt-2 text-sm text-slate-600">MP4, MOV, MKV, or AVI</p>
       </div>
       {file && <p className="mt-4 text-sm text-slate-700">Selected: <span className="font-medium">{file.name}</span></p>}
+      <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+        Project
+        <ProjectPicker value={projectId} onChange={setProjectId} disabled={isUploading} ariaLabel="Project for this upload" />
+      </label>
       {isUploading && <div className="mt-4" aria-live="polite"><div className="mb-1 flex justify-between text-sm"><span>Uploading</span><span>{progress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-slate-900 transition-all" style={{ width: `${progress}%` }} /></div></div>}
       {error && <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
       <Button className="mt-6 w-full" type="button" disabled={!file || isUploading} onClick={upload}>{isUploading ? "Uploading…" : "Upload video"}</Button>

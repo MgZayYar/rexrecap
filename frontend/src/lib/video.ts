@@ -4,7 +4,17 @@ export type Video = {
   content_type: string;
   size_bytes: number;
   status: string;
+  project_id: number | null;
   created_at: string;
+};
+
+export type Project = {
+  id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export function formatFileSize(bytes: number) {

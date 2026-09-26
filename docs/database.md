@@ -33,11 +33,13 @@ cd backend
 | Entity | Purpose | Important relations |
 | --- | --- | --- |
 | `User` | Authenticated account | Owns videos and projects. |
-| `Project` | User-owned container grouping a user's work | Belongs to a user. |
-| `Video` | Uploaded-file metadata | Belongs to a user; has processing jobs and one transcript. |
+| `Project` | User-owned container grouping a user's work | Belongs to a user; has many videos. |
+| `Video` | Uploaded-file metadata | Belongs to a user; optionally belongs to one project; has processing jobs and one transcript. |
 | `ProcessingJob` | State for asynchronous work | Belongs to a video. |
 | `Transcript` | Whisper output | One record per video. |
 | `Translation` | OpenAI translation output | Belongs to one transcript and one processing job; unique per target language. |
+
+`videos.project_id` is a nullable foreign key to `projects.id` with `ON DELETE SET NULL`: deleting a project keeps its videos, which become unassigned. SQLite enforces foreign-key actions only with `PRAGMA foreign_keys=ON`, which the app enables on every connection.
 
 ## ProcessingJob
 

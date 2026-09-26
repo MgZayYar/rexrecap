@@ -24,14 +24,16 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/projects` | List the current user's projects. |
 | GET | `/projects/{project_id}` | Get one owned project. 404 if missing or owned by someone else. |
 | PATCH | `/projects/{project_id}` | Update `name`, `description`, or `status` (`active` \| `archived`). |
-| DELETE | `/projects/{project_id}` | Delete an owned project. Returns 204. |
+| DELETE | `/projects/{project_id}` | Delete an owned project. Its videos are kept and become unassigned. Returns 204. |
+| GET | `/projects/{project_id}/videos` | List the current user's videos assigned to the project. |
 
 ## Videos
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. Enforces the `MAX_UPLOAD_BYTES` limit (413 when exceeded). Returns 201. |
+| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. Optional `project_id` form field assigns the video to an owned project. Enforces the `MAX_UPLOAD_BYTES` limit (413 when exceeded). Returns 201. |
 | GET | `/videos` | List the current user's videos. |
+| PATCH | `/videos/{video_id}` | Assign, move, or unassign a video's project. Body: `{ "project_id": number | null }`; omitting the field leaves the assignment unchanged. 404 for a foreign project. |
 | GET | `/videos/{video_id}/download` | Download an owned video. |
 | GET | `/videos/{video_id}/playback` | Stream an owned video (supports `Range` requests). |
 

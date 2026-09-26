@@ -19,7 +19,6 @@
 
 ## Next
 
-- Link videos to projects (nullable `project_id` migration + UI).
 - Move workers to a separate process with Redis or another durable queue.
 - Add resumable uploads and per-user quotas.
 - Highlight-clip shorts generation (scene/audio-moment detection → multiple vertical clips).

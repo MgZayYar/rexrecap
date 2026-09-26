@@ -19,7 +19,7 @@
 - Link videos to projects (nullable `project_id` migration + UI).
 - Move workers to a separate process with Redis or another durable queue.
 - Add resumable uploads and per-user quotas.
-- Implement dubbing and render jobs for real.
+- Implement the render job for real.
 - Highlight-clip shorts generation (scene/audio-moment detection → multiple vertical clips).
 - Add object storage and background delivery for large media files.
 - Add job cancellation, retry, observability, and notifications.

@@ -10,6 +10,7 @@ Alembic owns the schema. At startup the app runs `alembic upgrade head` (see `ba
 - `0001_baseline_schema.py` creates all tables. It is idempotent: every table and index is created only when missing, so it is safe on databases that were created by the old `Base.metadata.create_all()` bootstrap.
 - ⚠️ **Do not run `alembic downgrade` on the baseline migration against a database that already had tables.** Downgrading `0001` drops the tables it created; on an adopted (pre-Alembic) database that means destroying real user data. The baseline migration is meant to be upgraded through, never downgraded from.
 - `0002_job_output_path.py` adds the nullable `output_path` column to `processing_jobs` for jobs that produce downloadable files.
+- `0003_job_params.py` adds the nullable `params` JSON column to `processing_jobs` for per-job worker options (e.g. the dubbing voice/provider).
 - Never edit a migration that has already run anywhere; add a new one instead.
 
 ### Working with migrations

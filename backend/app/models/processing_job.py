@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -20,5 +21,7 @@ class ProcessingJob(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     """Relative path under storage/outputs/ for jobs that produce a file."""
+    params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    """Per-job worker options, e.g. dubbing voice/provider."""
 
     video: Mapped["Video"] = relationship(back_populates="processing_jobs")

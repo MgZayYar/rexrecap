@@ -44,7 +44,7 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
 | GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `dubbing` and `render` workers are placeholders that simulate progress without producing output; `autocrop` produces a real vertical 9:16 MP4. Job responses include `has_output: true` when a download is available.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real vertical 9:16 MP4. Job responses include `has_output: true` when a download is available.
 
 ## Transcripts
 
@@ -59,3 +59,12 @@ Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The 
 | --- | --- | --- |
 | POST | `/translations` | Queue a translation. Body: `{ "video_id", "target_language" }`. Requires an existing transcript (409 otherwise); unsupported languages return 422. |
 | GET | `/translations/video/{video_id}?target_language=<code>` | Get the translation for an owned video and language. 404 when none exists yet. |
+
+## Dubbing
+
+| Method | Route | Description |
+| --- | --- | --- |
+| GET | `/dubbings/providers` | List TTS providers (`edge`, `openai`). |
+| GET | `/dubbings/voices?provider=<p>&language=<code>` | List voices for a provider/language. |
+| POST | `/dubbings/preview` | Render a short sample. Body: `{ "text", "voice", "provider" }`. Returns `audio/mpeg`. |
+| POST | `/dubbings/start/{video_id}` | Queue a dubbing job. Body: `{ "provider", "voice", "target_language" }` (all optional). Requires an existing transcript (409 otherwise); `target_language` requires an existing translation (409 otherwise). Returns 201. |

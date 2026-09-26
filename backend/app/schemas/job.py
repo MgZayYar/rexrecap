@@ -24,6 +24,7 @@ class ProcessingJobResponse(BaseModel):
     started_at: datetime | None
     finished_at: datetime | None
     created_at: datetime
+    params: dict | None = None
     output_path: str | None = Field(default=None, exclude=True, repr=False)
 
     @computed_field

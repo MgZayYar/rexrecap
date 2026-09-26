@@ -39,9 +39,11 @@
 
 - UI polish: shared `LoadingState` / `EmptyState` / `ErrorMessage` primitives (`src/components/ui/feedback.tsx`); batch page gets a real initial loading state; dashboard, projects, notifications, batch, thumbnails, and assistant pages now use the shared empty states.
 
+- Code-quality review: extracted the duplicated 2s job poller into `useJobPolling` (shorts/thumbnails/assistant panels); transcript and translation viewers now stop polling once the job is terminal (the transcript viewer previously polled forever); `isTerminalStatus` helper + completed `job_type` union in `lib/job.ts`; `ErrorMessage` adopted in assistant/transcript/translation error surfaces; security pass confirmed ownership checks on all new routes, defensive path resolution on the thumbnail image endpoint, and sanitized upload filenames.
+
 ## Next
 
-- Final code-quality review (dead code, duplication, security pass).
+- Phase 28: final end-to-end verification and release notes.
 
 ## Scoped out
 

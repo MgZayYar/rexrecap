@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { useJobPolling } from "@/lib/use-job-polling";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/feedback";
@@ -32,7 +34,6 @@ export function ThumbnailsPanel({ videoId }: { videoId: number }) {
   const [candidates, setCandidates] = useState<ThumbnailCandidate[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [selecting, setSelecting] = useState<number | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshCandidates = useCallback(async () => {
     try {
@@ -46,31 +47,10 @@ export function ThumbnailsPanel({ videoId }: { videoId: number }) {
     void refreshCandidates();
   }, [refreshCandidates]);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
 
-  useEffect(() => {
-    if (!job || job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      if (job?.status === "completed") void refreshCandidates();
-      return;
-    }
-    if (pollRef.current) return;
-    pollRef.current = setInterval(async () => {
-      try {
-        const updated = await apiGet<ProcessingJob>(`/api/jobs/${job.id}`);
-        setJob(updated);
-      } catch {
-        /* transient; keep polling */
-      }
-    }, 2000);
-  }, [job, refreshCandidates]);
+  useJobPolling(job, setJob, useCallback(() => {
+    void refreshCandidates();
+  }, [refreshCandidates]));
 
   async function start() {
     setStarting(true);

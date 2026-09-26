@@ -1,7 +1,17 @@
 export type ProcessingJob = {
   id: number;
   video_id: number;
-  job_type: "transcription" | "translation" | "dubbing" | "autocrop" | "face_detection" | "subtitle_burn" | "render";
+  job_type:
+    | "transcription"
+    | "translation"
+    | "dubbing"
+    | "autocrop"
+    | "face_detection"
+    | "subtitle_burn"
+    | "render"
+    | "shorts"
+    | "thumbnails"
+    | "recap";
   status: "queued" | "processing" | "completed" | "failed" | "cancelled";
   progress: number;
   error_message: string | null;
@@ -27,4 +37,8 @@ export function estimatedState(job: ProcessingJob | null): string {
   if (job.status === "completed") return "Ready";
   if (job.status === "cancelled") return "Cancelled";
   return "Needs attention";
+}
+
+export function isTerminalStatus(status: ProcessingJob["status"]): boolean {
+  return status === "completed" || status === "failed" || status === "cancelled";
 }

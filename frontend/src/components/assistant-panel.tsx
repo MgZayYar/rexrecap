@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { useJobPolling } from "@/lib/use-job-polling";
 
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/feedback";
+import { EmptyState, ErrorMessage } from "@/components/ui/feedback";
 import { apiGet, apiPost, toMessage } from "@/lib/api-client";
 import type { ProcessingJob } from "@/lib/job";
 
@@ -119,7 +121,6 @@ export function AssistantPanel({ videoId }: { videoId: number }) {
   const [job, setJob] = useState<ProcessingJob | null>(null);
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshDrafts = useCallback(async () => {
     try {
@@ -133,31 +134,10 @@ export function AssistantPanel({ videoId }: { videoId: number }) {
     void refreshDrafts();
   }, [refreshDrafts]);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
 
-  useEffect(() => {
-    if (!job || job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      if (job?.status === "completed") void refreshDrafts();
-      return;
-    }
-    if (pollRef.current) return;
-    pollRef.current = setInterval(async () => {
-      try {
-        const updated = await apiGet<ProcessingJob>(`/api/jobs/${job.id}`);
-        setJob(updated);
-      } catch {
-        /* transient; keep polling */
-      }
-    }, 2000);
-  }, [job, refreshDrafts]);
+  useJobPolling(job, setJob, useCallback(() => {
+    void refreshDrafts();
+  }, [refreshDrafts]));
 
   async function start() {
     setStarting(true);
@@ -189,9 +169,9 @@ export function AssistantPanel({ videoId }: { videoId: number }) {
 
       {message && <p className="mt-4 text-sm text-slate-600">{message}</p>}
       {job?.status === "failed" && (
-        <p className="mt-4 text-sm text-red-600">
-          Drafting failed{job.error_message ? `: ${job.error_message}` : "."}
-        </p>
+        <div className="mt-4">
+          <ErrorMessage>Drafting failed{job.error_message ? `: ${job.error_message}` : "."}</ErrorMessage>
+        </div>
       )}
 
       <div className="mt-6 grid gap-6">

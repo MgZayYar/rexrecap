@@ -12,6 +12,7 @@
 - Timestamp-preserving translation via the OpenAI Responses API
 - Browser-based subtitle editor with SRT/ASS export
 - Real autocrop: face-tracked vertical 9:16 reframe with downloadable output (`GET /api/jobs/{id}/output`)
+- Face detection/tracking service: OpenCV Haar cascade + greedy centroid tracker with persistent person IDs; JSON result per video (`POST /api/faces/analyze/{video_id}`, `GET /api/faces/{video_id}`)
 - Representative backend (pytest) and frontend (Vitest) test suites
 
 ## Next

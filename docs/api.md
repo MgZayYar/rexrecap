@@ -68,3 +68,10 @@ Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The 
 | GET | `/dubbings/voices?provider=<p>&language=<code>` | List voices for a provider/language. |
 | POST | `/dubbings/preview` | Render a short sample. Body: `{ "text", "voice", "provider" }`. Returns `audio/mpeg`. |
 | POST | `/dubbings/start/{video_id}` | Queue a dubbing job. Body: `{ "provider", "voice", "target_language" }` (all optional). Requires an existing transcript (409 otherwise); `target_language` requires an existing translation (409 otherwise). Returns 201. |
+
+## Faces
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/faces/analyze/{video_id}` | Queue a `face_detection` job. Returns 201. Re-running replaces the previous analysis. |
+| GET | `/faces/{video_id}` | Return the stored `FaceAnalysis` JSON (people with persistent person IDs, timestamps, and per-frame bounding boxes). 404 when no analysis exists. |

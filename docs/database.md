@@ -11,6 +11,7 @@ Alembic owns the schema. At startup the app runs `alembic upgrade head` (see `ba
 - ⚠️ **Do not run `alembic downgrade` on the baseline migration against a database that already had tables.** Downgrading `0001` drops the tables it created; on an adopted (pre-Alembic) database that means destroying real user data. The baseline migration is meant to be upgraded through, never downgraded from.
 - `0002_job_output_path.py` adds the nullable `output_path` column to `processing_jobs` for jobs that produce downloadable files.
 - `0003_job_params.py` adds the nullable `params` JSON column to `processing_jobs` for per-job worker options (e.g. the dubbing voice/provider).
+- `0004_face_analyses.py` creates the `face_analyses` table (one JSON result row per video for the face tracking service).
 - Never edit a migration that has already run anywhere; add a new one instead.
 
 ### Working with migrations
@@ -53,6 +54,10 @@ cd backend
 ## Translation
 
 `Translation.segments` uses the same timestamped JSON shape as `Transcript.segments`. The worker writes translated text only, copying the source `start` and `end` values unchanged.
+
+## FaceAnalysis
+
+One row per video (`video_id` unique, `job_id` nullable unique). `FaceAnalysis.result` is the JSON produced by the face tracking service: frame dimensions, sampled fps, and one entry per tracked person with a persistent person ID, `first_seen`/`last_seen` timestamps, and per-frame `t/x/y/w/h` bounding boxes. Deleting a video cascades; deleting the producing job leaves the analysis (job FK is `SET NULL`).
 
 ## Project
 

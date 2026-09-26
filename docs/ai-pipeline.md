@@ -37,7 +37,7 @@ API request
   → in-process queue
   → worker marks processing
   → ffprobe reads dimensions/fps/duration          (app/video/analyze.py)
-  → OpenCV Haar cascade detects faces at ~2 fps
+  → OpenCV Haar cascade detects faces at ~2 fps   (app/ai/faces/detector.py)
   → smoothed horizontal crop trajectory, clamped to the frame
   → chunked FFmpeg crop (2 s chunks) + concat      (app/video/reframe.py)
   → output saved to storage/outputs/<uuid>_vertical.mp4
@@ -51,6 +51,41 @@ Key design points:
 - When no faces are found the crop stays centered; already-vertical videos keep their full frame.
 - The trajectory is smoothed with a centered moving average so the virtual camera pans instead of jumping.
 - Completed jobs expose `has_output: true` and the file downloads from `GET /api/jobs/{job_id}/output` (ownership-checked, path-traversal safe).
+
+## Face detection (tracking service)
+
+`POST /api/faces/analyze/{video_id}` queues a `face_detection` job. The worker samples the video at ~2 fps, detects faces with the shared OpenCV cascade, and tracks them across frames with persistent person IDs (greedy centroid tracker in `app/ai/faces/tracker.py`). The JSON result is stored as the video's `FaceAnalysis` row and read back with `GET /api/faces/{video_id}`:
+
+```json
+{
+  "video_id": 12,
+  "result": {
+    "width": 1280,
+    "height": 720,
+    "duration": 95.4,
+    "sample_fps": 2.0,
+    "frames_sampled": 190,
+    "people_count": 2,
+    "people": [
+      {
+        "person_id": 1,
+        "first_seen": 0.5,
+        "last_seen": 88.0,
+        "detection_count": 175,
+        "detections": [{"t": 0.5, "x": 412.0, "y": 210.0, "w": 96.0, "h": 96.0}]
+      }
+    ]
+  }
+}
+```
+
+Key design points:
+
+- One row per video; re-running analysis replaces the previous result.
+- Detection is the same shared implementation the autocrop uses, so both pipelines agree on what a "face" is.
+- Coordinates are native frame pixels (`x, y, w, h`); person IDs are stable across frames within one analysis run.
+- ID switches can occur when faces cross or leave the frame for a while — a documented v1 limitation of the greedy tracker, to be replaced by a proper MOT model later.
+- Downstream features (smart auto crop, shorts) consume the stored JSON instead of re-running detection.
 
 ## Dubbing (AI voice-over)
 

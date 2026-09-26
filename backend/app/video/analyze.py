@@ -75,21 +75,16 @@ def probe_video(video_path: Path) -> VideoInfo:
     return VideoInfo(width=width, height=height, fps=fps, duration=duration)
 
 
-def _face_cascade():
-    import cv2
-
-    path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-    cascade = cv2.CascadeClassifier(str(path))
-    if cascade.empty():
-        raise RuntimeError("Could not load the OpenCV face cascade")
-    return cascade
-
-
 def detect_face_samples(video_path: Path, sample_fps: float = 2.0) -> list[FaceSample]:
-    """Sample frames at `sample_fps` and return face-center x positions per sample."""
+    """Sample frames at `sample_fps` and return face-center x positions per sample.
+
+    Detection itself lives in app.ai.faces.detector so the autocrop and the
+    face-analysis service share one implementation.
+    """
     import cv2
 
-    cascade = _face_cascade()
+    from app.ai.faces.detector import detect_faces
+
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
         raise RuntimeError("Could not open the video for analysis")
@@ -105,10 +100,7 @@ def detect_face_samples(video_path: Path, sample_fps: float = 2.0) -> list[FaceS
                 break
             if index % step == 0:
                 t = index / native_fps
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5,
-                                                 minSize=(40, 40))
-                centers = tuple(float(x + w / 2) for x, _y, w, _h in faces)
+                centers = tuple(box.cx for box in detect_faces(frame))
                 samples.append(FaceSample(t=t, centers_x=centers))
             index += 1
     finally:

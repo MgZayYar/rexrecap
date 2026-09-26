@@ -23,3 +23,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(2 * 1024**3)))
 USER_STORAGE_QUOTA_BYTES = int(os.getenv("USER_STORAGE_QUOTA_BYTES", str(10 * 1024**3)))
 WORKER_POLL_INTERVAL = float(os.getenv("WORKER_POLL_INTERVAL", "2.0"))
+
+# Object storage for job-output delivery. "local" (default) streams files
+# through the API; "s3" syncs finished outputs to an S3-compatible bucket
+# and serves them as presigned-URL redirects. Credentials are env-only.
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local").strip().lower()
+S3_BUCKET = os.getenv("S3_BUCKET", "").strip()
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "").strip() or None
+S3_REGION = os.getenv("S3_REGION", "us-east-1").strip()
+S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "").strip() or None
+S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "").strip() or None
+PRESIGNED_URL_EXPIRES_IN = int(os.getenv("PRESIGNED_URL_EXPIRES_IN", "3600"))

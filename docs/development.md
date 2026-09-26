@@ -22,7 +22,21 @@ DATABASE_URL=<redacted>
 JWT_SECRET_KEY=<a long random string>
 MAX_UPLOAD_BYTES=2147483648
 USER_STORAGE_QUOTA_BYTES=10737418240
+# Object storage for job-output delivery (optional):
+# STORAGE_BACKEND=s3
+# S3_BUCKET=rexcrop-outputs
+# S3_ENDPOINT_URL=https://minio.local:9000   # omit for AWS S3
+# S3_REGION=us-east-1
+# S3_ACCESS_KEY_ID=...
+# S3_SECRET_ACCESS_KEY=...
 ```
+
+With `STORAGE_BACKEND=s3`, the worker uploads each finished job output and
+short clip to the bucket (`outputs/<filename>`), and the download endpoints
+respond with a 302 redirect to a presigned URL (valid
+`PRESIGNED_URL_EXPIRES_IN` seconds, default 3600) so large files never flow
+through the API. Sync failures are logged but never fail the job — the local
+file remains the source of truth.
 
 Run the API:
 

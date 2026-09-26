@@ -19,6 +19,8 @@ class ShortClip(Base):
     score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     output_path: Mapped[str] = mapped_column(Text, nullable=False)
     """Filename under storage/outputs/."""
+    remote_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    """Object-storage key when the clip was synced for remote delivery."""
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     video: Mapped["Video"] = relationship(back_populates="short_clips")

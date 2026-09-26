@@ -20,6 +20,8 @@ class ProcessingJob(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    output_remote_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    """Object-storage key when the output was synced for remote delivery."""
     """Relative path under storage/outputs/ for jobs that produce a file."""
     params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     """Per-job worker options, e.g. dubbing voice/provider."""

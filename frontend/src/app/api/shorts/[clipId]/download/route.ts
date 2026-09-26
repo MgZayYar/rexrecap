@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { backendFetchWithAuth, getAuthToken, unauthorized } from "@/lib/server-backend";
 
 export async function GET(_: Request, { params }: { params: Promise<{ clipId: string }> }) {
@@ -9,7 +11,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ clipId: st
     return new Response("Invalid clip id", { status: 400 });
   }
 
-  const response = await backendFetchWithAuth(`/shorts/${id}/download`);
+  // redirect: "manual" so a presigned object-storage URL is passed to the
+  // browser instead of being proxied through the Next.js server.
+  const response = await backendFetchWithAuth(`/shorts/${id}/download`, { redirect: "manual" });
+  if (response.status === 302 || response.status === 307) {
+    const location = response.headers.get("location");
+    if (location) return NextResponse.redirect(location);
+  }
   if (!response.ok) {
     return new Response("Clip not available", { status: response.status });
   }

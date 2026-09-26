@@ -23,7 +23,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select, update
 
-from app.core.config import WORKER_POLL_INTERVAL
+from app.core.config import OUTPUTS_DIR, WORKER_POLL_INTERVAL
 from app.db.session import SessionLocal
 from app.models.processing_job import ProcessingJob
 from app.models.worker_heartbeat import WorkerHeartbeat, new_worker_id
@@ -137,7 +137,40 @@ async def process_claimed_job(job_id: int, job_type: str) -> None:
             job.progress = 100
             job.finished_at = datetime.now(UTC)
             db.commit()
+    _sync_output_to_remote(job_id)
     logger.info("job %s completed", job_id)
+
+
+def _sync_output_to_remote(job_id: int) -> None:
+    """Upload a finished job's output to object storage when configured.
+
+    Sync failures are logged but never fail the job: the local file remains
+    the delivery source of truth.
+    """
+    from app.storage import get_storage_backend, is_remote_delivery, remote_key_for_output
+
+    if not is_remote_delivery():
+        return
+    with SessionLocal() as db:
+        job = db.get(ProcessingJob, job_id)
+        if job is None or not job.output_path or job.output_remote_key:
+            return
+        local_path = OUTPUTS_DIR / job.output_path
+        key = remote_key_for_output(job.output_path)
+    if not local_path.is_file():
+        logger.warning("job %s output %s missing; skipping remote sync", job_id, local_path)
+        return
+    try:
+        get_storage_backend().put_file(key, local_path, content_type="video/mp4")
+    except Exception:
+        logger.exception("job %s: remote sync of %s failed", job_id, key)
+        return
+    with SessionLocal() as db:
+        job = db.get(ProcessingJob, job_id)
+        if job is not None:
+            job.output_remote_key = key
+            db.commit()
+    logger.info("job %s output synced to %s", job_id, key)
 
 
 def heartbeat(worker_id: str, current_job_id: int | None) -> None:

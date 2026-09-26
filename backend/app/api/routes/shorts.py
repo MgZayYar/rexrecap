@@ -1,7 +1,7 @@
 """Shorts REST API: generate highlight clips and list/download them."""
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -13,6 +13,7 @@ from app.models.video import Video
 from app.repositories.videos import get_owned_video
 from app.schemas.job import ProcessingJobResponse
 from app.services.jobs import create_job as queue_processing_job
+from app.storage import remote_download_url
 
 router = APIRouter(prefix="/shorts", tags=["shorts"])
 
@@ -71,8 +72,11 @@ def download_short(clip_id: int, current_user: CurrentUser, db: DbSession):
     )
     if clip is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Clip not found")
+    filename = f"short_{clip.id}_{int(clip.start_time)}s.mp4"
+    remote_url = remote_download_url(clip.remote_key, filename)
+    if remote_url:
+        return RedirectResponse(remote_url, status_code=status.HTTP_302_FOUND)
     path = OUTPUTS_DIR / clip.output_path
     if not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Clip file not found")
-    return FileResponse(path, media_type="video/mp4",
-                        filename=f"short_{clip.id}_{int(clip.start_time)}s.mp4")
+    return FileResponse(path, media_type="video/mp4", filename=filename)

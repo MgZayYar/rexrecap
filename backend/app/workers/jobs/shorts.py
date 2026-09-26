@@ -10,6 +10,7 @@ For each detected window the worker:
 from __future__ import annotations
 
 import asyncio
+import logging
 import shutil
 import tempfile
 import uuid
@@ -31,6 +32,8 @@ from app.video.reframe import crop_size_for_ratio, render_crop_async
 from app.video.smartcrop import plan_crop_trajectory
 from app.video.subtitles import burn_subtitles
 from app.workers.jobs.simulation import ProgressReporter
+
+logger = logging.getLogger("rexcrop.shorts")
 
 
 async def run(job_id: int, report_progress: ProgressReporter) -> None:
@@ -114,7 +117,39 @@ async def run(job_id: int, report_progress: ProgressReporter) -> None:
         if job is not None and made:
             job.output_path = made[0]["output_path"]
         db.commit()
+    _sync_clips_to_remote(job_id, [c["output_path"] for c in made])
     await report_progress(100)
+
+
+def _sync_clips_to_remote(job_id: int, filenames: list[str]) -> None:
+    """Upload finished clips to object storage when configured.
+
+    Failures are logged only; local files remain the source of truth.
+    """
+    from app.storage import get_storage_backend, is_remote_delivery, remote_key_for_output
+
+    if not is_remote_delivery():
+        return
+    backend = get_storage_backend()
+    synced: dict[str, str] = {}
+    for filename in filenames:
+        local_path = OUTPUTS_DIR / filename
+        if not local_path.is_file():
+            continue
+        key = remote_key_for_output(filename)
+        try:
+            backend.put_file(key, local_path, content_type="video/mp4")
+            synced[filename] = key
+        except Exception:
+            logger.exception("shorts job %s: remote sync of %s failed", job_id, key)
+    if not synced:
+        return
+    with SessionLocal() as db:
+        clips = db.scalars(select(ShortClip).where(ShortClip.job_id == job_id)).all()
+        for clip in clips:
+            if clip.output_path in synced:
+                clip.remote_key = synced[clip.output_path]
+        db.commit()
 
 
 def _move(src: Path, dst: Path) -> None:

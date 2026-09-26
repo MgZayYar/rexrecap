@@ -8,14 +8,11 @@ record the output file on the job. Video is re-encoded; audio is copied.
 import asyncio
 from uuid import uuid4
 
-from sqlalchemy import select
-
 from app.core.config import OUTPUTS_DIR, UPLOADS_DIR
 from app.db.session import SessionLocal
 from app.models.processing_job import ProcessingJob
-from app.models.transcript import Transcript
-from app.models.translation import Translation
 from app.models.video import Video
+from app.services.subtitles import resolve_subtitle_segments
 from app.video.subtitles import burn_subtitles, segments_to_ass, segments_to_srt
 from app.workers.jobs.simulation import ProgressReporter
 
@@ -32,17 +29,7 @@ async def run(job_id: int, report_progress: ProgressReporter) -> None:
         language = params.get("language")
         video_id = video.id
         video_path = UPLOADS_DIR / video.stored_filename
-
-        transcript = db.scalar(select(Transcript).where(Transcript.video_id == video_id))
-        segments: list[dict] | None = None
-        if transcript is not None:
-            segments = list(transcript.segments or [])
-        if source == "translation":
-            query = select(Translation).where(Translation.video_id == video_id)
-            if language:
-                query = query.where(Translation.language == language)
-            translation = db.scalar(query.order_by(Translation.created_at.desc()))
-            segments = list(translation.segments or []) if translation else None
+        segments = resolve_subtitle_segments(db, video_id, source, language)
 
     if not video_path.is_file():
         raise RuntimeError("Uploaded video file was not found")

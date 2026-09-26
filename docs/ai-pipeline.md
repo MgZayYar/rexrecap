@@ -25,7 +25,7 @@ The worker reports progress at each major boundary. If extraction, model loading
 
 The default model is `base`, running on CPU with `int8` compute. Set `WHISPER_MODEL`, `WHISPER_DEVICE`, and `WHISPER_COMPUTE_TYPE` in `backend/.env` to tune quality and hardware usage.
 
-Translation shares the same queue and lifecycle contract. Dubbing is real (see below); render remains a progress-only placeholder so its real implementation can be added without changing the API.
+Translation shares the same queue and lifecycle contract. Dubbing is real (see below); the render worker assembles the final delivery MP4 (smart-crop + burned subtitles + dubbed audio, all optional) without changing the API.
 
 ## Autocrop (vertical reframe)
 

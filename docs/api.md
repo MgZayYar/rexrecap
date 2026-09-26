@@ -44,7 +44,7 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
 | GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real cropped MP4. The optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`). Job responses include `has_output: true` when a download is available.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`. The `render` worker assembles the final delivery MP4 (`<uuid>_render.mp4`); the optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`), and the render worker reads `params.aspect_ratio` (smart-crop stage), `params.burn_subtitles` (`"ass"`/`"srt"`), `params.subtitle_source` (`"transcript"`/`"translation"`), `params.language`, and `params.use_dubbed_audio` (replaces the audio track with the video's latest completed dubbing output). Job responses include `has_output: true` when a download is available.
 
 ## Transcripts
 

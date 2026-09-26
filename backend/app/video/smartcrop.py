@@ -17,7 +17,10 @@ Consumes the JSON produced by the Phase 9 face detection service
 
 from __future__ import annotations
 
-from app.video.analyze import smooth_trajectory
+import asyncio
+from pathlib import Path
+
+from app.video.analyze import VideoInfo, compute_crop_trajectory, detect_face_samples, smooth_trajectory
 
 SWITCH_RATIO = 1.4  # challenger must be 40% larger to steal focus
 SWITCH_HOLD = 2  # consecutive winning samples before the switch happens
@@ -96,3 +99,20 @@ def plan_trajectory_from_analysis(result: dict, frame_width: int,
         eased.append(previous)
     smoothed = smooth_trajectory(eased, window=5)
     return [(t, x) for (t, _), x in zip(raw, smoothed)]
+
+
+async def plan_crop_trajectory(video_path: Path, info: VideoInfo, crop_width: int,
+                               face_result: dict | None) -> list[tuple[float, float]]:
+    """Plan a crop trajectory, preferring stored face-tracking data.
+
+    `face_result` is a FaceAnalysis result dict (or None). When it has tracked
+    people, the speaker-aware planner is used; otherwise faces are detected
+    live from the video. Shared by the autocrop and render workers so both
+    pipelines move the virtual camera the same way.
+    """
+    if face_result and face_result.get("people"):
+        return await asyncio.to_thread(
+            plan_trajectory_from_analysis, face_result, info.width, crop_width
+        )
+    samples = await asyncio.to_thread(detect_face_samples, video_path)
+    return compute_crop_trajectory(samples, info.width, crop_width)

@@ -17,9 +17,9 @@ from app.db.session import SessionLocal
 from app.models.face_analysis import FaceAnalysis
 from app.models.processing_job import ProcessingJob
 from app.models.video import Video
-from app.video.analyze import compute_crop_trajectory, detect_face_samples, probe_video
+from app.video.analyze import probe_video
 from app.video.reframe import ASPECT_RATIOS, OUTPUT_SLUGS, crop_size_for_ratio, render_crop_async
-from app.video.smartcrop import plan_trajectory_from_analysis
+from app.video.smartcrop import plan_crop_trajectory
 from app.workers.jobs.simulation import ProgressReporter
 
 DEFAULT_ASPECT_RATIO = "9:16"
@@ -50,14 +50,9 @@ async def run(job_id: int, report_progress: ProgressReporter) -> None:
         analysis = db.scalar(select(FaceAnalysis).where(FaceAnalysis.video_id == video_id))
 
     crop_size = crop_size_for_ratio(info.width, info.height, aspect_ratio)
-    if analysis is not None and analysis.result.get("people"):
-        # Phase 9 tracking data: speaker-aware trajectory, no re-detection.
-        trajectory = await asyncio.to_thread(
-            plan_trajectory_from_analysis, analysis.result, info.width, crop_size[0]
-        )
-    else:
-        samples = await asyncio.to_thread(detect_face_samples, video_path)
-        trajectory = compute_crop_trajectory(samples, info.width, crop_size[0])
+    # Phase 9 tracking data when available; otherwise detect faces live.
+    trajectory = await plan_crop_trajectory(video_path, info, crop_size[0],
+                                            analysis.result if analysis else None)
     await report_progress(40)
 
     filename = f"{uuid4().hex}_{OUTPUT_SLUGS[aspect_ratio]}.mp4"

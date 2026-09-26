@@ -39,12 +39,12 @@ Projects are user-owned containers that group a user's work. Every project route
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/jobs/create` | Queue a job. Body: `{ "video_id", "job_type" }`. Returns 201. |
+| POST | `/jobs/create` | Queue a job. Body: `{ "video_id", "job_type", "params?" }`. Returns 201. |
 | GET | `/jobs/video/{video_id}` | List jobs for an owned video, newest first. |
 | GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
 | GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real vertical 9:16 MP4. Job responses include `has_output: true` when a download is available.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real cropped MP4. The optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`). Job responses include `has_output: true` when a download is available.
 
 ## Transcripts
 

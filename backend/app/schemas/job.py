@@ -10,6 +10,7 @@ JobStatus = Literal["queued", "processing", "completed", "failed"]
 class CreateJobRequest(BaseModel):
     video_id: int = Field(gt=0)
     job_type: JobType
+    params: dict | None = None
 
 
 class ProcessingJobResponse(BaseModel):

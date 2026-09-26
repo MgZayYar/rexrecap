@@ -1,11 +1,11 @@
-"""Vertical 9:16 reframing.
+"""Smart reframing for several aspect ratios.
 
-Computes a centered crop window and renders it with FFmpeg. The crop window
-slides horizontally along a smoothed trajectory (see app.video.analyze), so
-the subject stays in frame. Rendering is chunked: each chunk is cropped with
-a fixed x offset, then chunks are concatenated. Chunking keeps the FFmpeg
-invocation simple and debuggable; the smoothed trajectory keeps motion
-natural.
+Computes a crop window for a target aspect ratio (9:16, 1:1, 4:5) and renders
+it with FFmpeg. The crop window slides along a smoothed trajectory (see
+app.video.analyze and app.video.smartcrop), so the subject stays in frame.
+Rendering is chunked: each chunk is cropped with a fixed x offset, then
+chunks are concatenated. Chunking keeps the FFmpeg invocation simple and
+debuggable; the smoothed trajectory keeps motion natural.
 """
 
 from __future__ import annotations
@@ -17,17 +17,36 @@ from pathlib import Path
 
 from app.video.ffmpeg import run_ffmpeg
 
+ASPECT_RATIOS: dict[str, tuple[int, int]] = {
+    "9:16": (9, 16),
+    "1:1": (1, 1),
+    "4:5": (4, 5),
+}
+
+OUTPUT_SLUGS = {"9:16": "916", "1:1": "11", "4:5": "45"}
+
+# Backward-compatible default for the original vertical pipeline.
 TARGET_RATIO = 9 / 16
 
 
-def vertical_crop_size(frame_width: int, frame_height: int) -> tuple[int, int]:
-    """Largest 9:16 window that fits inside the frame (even dimensions)."""
-    crop_w = min(frame_width, round(frame_height * TARGET_RATIO))
-    crop_h = min(frame_height, round(frame_width / TARGET_RATIO))
+def crop_size_for_ratio(frame_width: int, frame_height: int, ratio_name: str) -> tuple[int, int]:
+    """Largest window of `ratio_name` that fits inside the frame (even dims)."""
+    if ratio_name not in ASPECT_RATIOS:
+        raise ValueError(f"Unsupported aspect ratio: {ratio_name!r} "
+                         f"(expected one of {sorted(ASPECT_RATIOS)})")
+    rw, rh = ASPECT_RATIOS[ratio_name]
+    target = rw / rh
+    crop_w = min(frame_width, round(frame_height * target))
+    crop_h = min(frame_height, round(frame_width / target))
     # FFmpeg crop needs even dimensions for yuv420p.
     crop_w -= crop_w % 2
     crop_h -= crop_h % 2
     return max(2, crop_w), max(2, crop_h)
+
+
+def vertical_crop_size(frame_width: int, frame_height: int) -> tuple[int, int]:
+    """Largest 9:16 window that fits inside the frame (even dimensions)."""
+    return crop_size_for_ratio(frame_width, frame_height, "9:16")
 
 
 def chunk_trajectory(trajectory: list[tuple[float, float]],
@@ -53,13 +72,13 @@ def chunk_trajectory(trajectory: list[tuple[float, float]],
     return chunks
 
 
-def render_vertical(input_path: Path, output_path: Path,
-                    trajectory: list[tuple[float, float]],
-                    crop_size: tuple[int, int],
-                    duration: float,
-                    chunk_seconds: float = 2.0,
-                    on_chunk: Callable[[int, int], None] | None = None) -> None:
-    """Render the vertical crop. `on_chunk(done, total)` reports progress."""
+def render_crop(input_path: Path, output_path: Path,
+                trajectory: list[tuple[float, float]],
+                crop_size: tuple[int, int],
+                duration: float,
+                chunk_seconds: float = 2.0,
+                on_chunk: Callable[[int, int], None] | None = None) -> None:
+    """Render the crop. `on_chunk(done, total)` reports progress."""
     crop_w, crop_h = crop_size
     chunks = chunk_trajectory(trajectory, chunk_seconds)
     if not chunks:
@@ -105,7 +124,18 @@ def render_vertical(input_path: Path, output_path: Path,
         )
 
 
-async def render_vertical_async(*args, **kwargs) -> None:
+def render_vertical(input_path: Path, output_path: Path,
+                    trajectory: list[tuple[float, float]],
+                    crop_size: tuple[int, int],
+                    duration: float,
+                    chunk_seconds: float = 2.0,
+                    on_chunk: Callable[[int, int], None] | None = None) -> None:
+    """Render the 9:16 vertical crop (kept for backward compatibility)."""
+    render_crop(input_path, output_path, trajectory, crop_size, duration,
+                chunk_seconds=chunk_seconds, on_chunk=on_chunk)
+
+
+async def render_crop_async(*args, **kwargs) -> None:
     """Async wrapper that runs the blocking render in a worker thread."""
     on_chunk = kwargs.pop("on_chunk", None)
     loop = asyncio.get_running_loop()
@@ -114,4 +144,9 @@ async def render_vertical_async(*args, **kwargs) -> None:
         if on_chunk:
             loop.call_soon_threadsafe(on_chunk, done, total)
 
-    await asyncio.to_thread(render_vertical, *args, **kwargs, on_chunk=_report)
+    await asyncio.to_thread(render_crop, *args, **kwargs, on_chunk=_report)
+
+
+async def render_vertical_async(*args, **kwargs) -> None:
+    """Async wrapper for the 9:16 render (kept for backward compatibility)."""
+    await render_crop_async(*args, **kwargs)

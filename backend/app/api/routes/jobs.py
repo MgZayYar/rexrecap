@@ -29,7 +29,7 @@ async def create_job(payload: CreateJobRequest, current_user: CurrentUser, db: D
     video = get_owned_video(db, payload.video_id, current_user.id)
     if video is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
-    return await queue_processing_job(db, video.id, payload.job_type)
+    return await queue_processing_job(db, video.id, payload.job_type, params=payload.params)
 
 
 @router.get("/video/{video_id}", response_model=list[ProcessingJobResponse])

@@ -1,7 +1,7 @@
 export type ProcessingJob = {
   id: number;
   video_id: number;
-  job_type: "transcription" | "translation" | "dubbing" | "autocrop" | "render";
+  job_type: "transcription" | "translation" | "dubbing" | "autocrop" | "face_detection" | "render";
   status: "queued" | "processing" | "completed" | "failed";
   progress: number;
   error_message: string | null;

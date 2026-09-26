@@ -52,6 +52,37 @@ Key design points:
 - The trajectory is smoothed with a centered moving average so the virtual camera pans instead of jumping.
 - Completed jobs expose `has_output: true` and the file downloads from `GET /api/jobs/{job_id}/output` (ownership-checked, path-traversal safe).
 
+## Smart auto crop (Phase 10)
+
+The autocrop worker is now a smart crop pipeline covering 9:16, 1:1, and 4:5:
+
+```text
+API request (params: {"aspect_ratio": "1:1"})
+  → ProcessingJob (queued, params stored)
+  → worker: probe video
+  → load the video's stored FaceAnalysis when one exists (Phase 9 tracking
+    data: persistent person IDs, per-frame boxes) -- else detect faces live
+  → app/video/smartcrop.py plans the trajectory:
+      speaker tracking (dominant face per sampled frame)
+      face priority (largest face wins)
+      multi-speaker switching (challenger must be 40% larger for 2 samples)
+      safe margins (dominant face kept fully inside with an 8% margin)
+      smooth camera movement (exponential easing + moving average)
+  → chunked FFmpeg crop for the chosen ratio (app/video/reframe.py)
+  → output saved to storage/outputs/<uuid>_<ratio>.mp4
+```
+
+Key design points:
+
+- `POST /api/jobs/create` accepts an optional `params` object; the autocrop
+  worker reads `params.aspect_ratio` (default `"9:16"`, invalid values fail
+  the job with a clear error).
+- Reusing the stored `FaceAnalysis` means detection runs once per video and
+  every crop format shares the same tracking data.
+- The frontend Auto-crop button has an aspect-ratio selector (9:16 / 1:1 / 4:5).
+- The old 9:16-only helpers (`vertical_crop_size`, `render_vertical`) remain
+  as thin wrappers, so existing callers keep working.
+
 ## Face detection (tracking service)
 
 `POST /api/faces/analyze/{video_id}` queues a `face_detection` job. The worker samples the video at ~2 fps, detects faces with the shared OpenCV cascade, and tracks them across frames with persistent person IDs (greedy centroid tracker in `app/ai/faces/tracker.py`). The JSON result is stored as the video's `FaceAnalysis` row and read back with `GET /api/faces/{video_id}`:

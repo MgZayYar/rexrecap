@@ -27,4 +27,5 @@ class Video(Base):
     processing_jobs: Mapped[list["ProcessingJob"]] = relationship(back_populates="video", cascade="all, delete-orphan")
     short_clips: Mapped[list["ShortClip"]] = relationship(back_populates="video", cascade="all, delete-orphan")
     thumbnails: Mapped[list["Thumbnail"]] = relationship(back_populates="video", cascade="all, delete-orphan")
+    recap_drafts: Mapped[list["RecapDraft"]] = relationship(back_populates="video", cascade="all, delete-orphan")
     transcript: Mapped["Transcript | None"] = relationship(back_populates="video", cascade="all, delete-orphan", uselist=False)

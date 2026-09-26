@@ -19,6 +19,7 @@ BATCHABLE_JOB_TYPES = frozenset({
     "render",
     "shorts",
     "thumbnails",
+    "recap",
 })
 
 MAX_BATCH_VIDEOS = 50

@@ -31,9 +31,11 @@
 - Thumbnail generation: `thumbnails` worker extracts frames across the video and scores them by sharpness + face prominence; `/videos/[id]/thumbnails` picker page (generate, preview, use-as-thumbnail via `videos.thumbnail_path`); `GET /thumbnails/{id}/image` serves candidates; migration 0011.
 - Batch processing: `batch_runs`/`batch_run_items` (migration 0012); `POST /batch/runs` queues one job type across up to 50 owned videos; `GET /batch/runs` + `/batch/runs/{id}` with derived progress summaries and per-video job status; `/batch` page with video checkboxes, job-type picker, live progress cards, and a dashboard Batch link.
 
+- Recap assistant: `recap` worker turns a finished transcript into a structured draft (title ideas, hook, timestamped story beats, key quotes) via the OpenAI Responses API with a strict JSON schema; `/videos/[id]/assistant` page renders drafts with copy-script; `recap_drafts` table (migration 0013); 409 when no transcript; honest failure when `OPENAI_API_KEY` is unset.
+
 ## Next
 
-- AI assistant / smart suggestions for the recap workflow.
+- API reference documentation.
 
 ## Scoped out
 

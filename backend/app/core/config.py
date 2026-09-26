@@ -16,6 +16,7 @@ WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TRANSLATION_MODEL = os.getenv("TRANSLATION_MODEL", "gpt-4.1-mini")
+RECAP_MODEL = os.getenv("RECAP_MODEL", "gpt-4.1-mini")
 DEFAULT_JWT_SECRET_KEY = "change-this-development-secret-before-production"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", DEFAULT_JWT_SECRET_KEY)
 JWT_ALGORITHM = "HS256"

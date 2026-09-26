@@ -17,6 +17,7 @@ const BATCHABLE_JOBS: { value: string; label: string }[] = [
   { value: "render", label: "Render" },
   { value: "shorts", label: "Highlight clips" },
   { value: "thumbnails", label: "Thumbnails" },
+  { value: "recap", label: "Recap draft" },
 ];
 
 type BatchSummary = {

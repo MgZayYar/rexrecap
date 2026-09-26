@@ -40,6 +40,15 @@ export function JobStatus({ videoId }: JobStatusProps) {
       <div className="flex justify-between gap-3 text-xs"><span className="capitalize text-slate-700">{job.status}</span><span className="text-slate-500">{job.progress}%</span></div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200"><div className={`h-full ${color} transition-all`} style={{ width: `${job.progress}%` }} /></div>
       <p className="mt-1 text-xs text-slate-500">{estimatedState(job)}{job.error_message ? ` · ${job.error_message}` : ""}</p>
+      {job.has_output && (
+        <a
+          className="mt-1 inline-block text-xs font-medium text-slate-900 underline underline-offset-2"
+          href={`/api/jobs/${job.id}/output`}
+          download
+        >
+          Download {job.job_type === "autocrop" ? "vertical video" : "output"}
+        </a>
+      )}
     </div>
   );
 }

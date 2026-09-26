@@ -8,6 +8,7 @@ export type ProcessingJob = {
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
+  has_output: boolean;
 };
 
 export function estimatedState(job: ProcessingJob | null): string {

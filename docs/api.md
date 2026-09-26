@@ -42,8 +42,9 @@ Projects are user-owned containers that group a user's work. Every project route
 | POST | `/jobs/create` | Queue a job. Body: `{ "video_id", "job_type" }`. Returns 201. |
 | GET | `/jobs/video/{video_id}` | List jobs for an owned video, newest first. |
 | GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
+| GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `dubbing`, `autocrop`, and `render` workers are placeholders that simulate progress without producing output.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `render`. The `dubbing` and `render` workers are placeholders that simulate progress without producing output; `autocrop` produces a real vertical 9:16 MP4. Job responses include `has_output: true` when a download is available.
 
 ## Transcripts
 

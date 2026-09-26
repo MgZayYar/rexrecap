@@ -9,6 +9,7 @@ load_dotenv(PROJECT_DIR / ".env")
 DEFAULT_DATABASE_URL = "sqlite:///./rexcrop.db"
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
 UPLOADS_DIR = PROJECT_DIR / "storage" / "uploads"
+OUTPUTS_DIR = PROJECT_DIR / "storage" / "outputs"
 FFMPEG_BINARY = os.getenv("FFMPEG_BINARY", "ffmpeg")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")

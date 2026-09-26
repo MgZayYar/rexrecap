@@ -7,6 +7,8 @@ backend/**/*.py[cod]
 backend/*.db
 backend/storage/uploads/*
 !backend/storage/uploads/.gitkeep
+backend/storage/outputs/*
+!backend/storage/outputs/.gitkeep
 backend/.env
 frontend/.env*.local
 .DS_Store

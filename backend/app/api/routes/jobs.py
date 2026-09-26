@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.config import OUTPUTS_DIR
 from app.models.processing_job import ProcessingJob
 from app.models.video import Video
 from app.repositories.videos import get_owned_video
@@ -41,3 +43,15 @@ def list_video_jobs(video_id: int, current_user: CurrentUser, db: DbSession) -> 
 @router.get("/{job_id}", response_model=ProcessingJobResponse)
 def get_job(job_id: int, current_user: CurrentUser, db: DbSession) -> ProcessingJob:
     return get_owned_job(job_id, current_user, db)
+
+
+@router.get("/{job_id}/output")
+def download_job_output(job_id: int, current_user: CurrentUser, db: DbSession) -> FileResponse:
+    job = get_owned_job(job_id, current_user, db)
+    if not job.output_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This job has no output file")
+    # output_path is a worker-generated filename; resolve defensively anyway.
+    path = (OUTPUTS_DIR / job.output_path).resolve()
+    if OUTPUTS_DIR.resolve() not in path.parents or not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Output file not found")
+    return FileResponse(path, media_type="video/mp4", filename=f"rexcrop-{job.job_type}-{job.id}.mp4")

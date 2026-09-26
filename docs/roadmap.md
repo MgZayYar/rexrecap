@@ -29,10 +29,11 @@
 - Production deployment configuration: backend + frontend Dockerfiles, `docker-compose.yml` (api/worker/web, optional MinIO profile), unauthenticated `GET /health` probe with DB + storage checks, env-overridable storage dirs, SQLite WAL mode for concurrent api/worker writes, root `.env.example`, `docs/deployment.md` production checklist.
 
 - Thumbnail generation: `thumbnails` worker extracts frames across the video and scores them by sharpness + face prominence; `/videos/[id]/thumbnails` picker page (generate, preview, use-as-thumbnail via `videos.thumbnail_path`); `GET /thumbnails/{id}/image` serves candidates; migration 0011.
+- Batch processing: `batch_runs`/`batch_run_items` (migration 0012); `POST /batch/runs` queues one job type across up to 50 owned videos; `GET /batch/runs` + `/batch/runs/{id}` with derived progress summaries and per-video job status; `/batch` page with video checkboxes, job-type picker, live progress cards, and a dashboard Batch link.
 
 ## Next
 
-- Batch processing queue (multi-video transcription/dubbing runs).
+- AI assistant / smart suggestions for the recap workflow.
 
 ## Scoped out
 

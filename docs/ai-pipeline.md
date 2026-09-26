@@ -83,6 +83,28 @@ Key design points:
 - The old 9:16-only helpers (`vertical_crop_size`, `render_vertical`) remain
   as thin wrappers, so existing callers keep working.
 
+## Subtitle burn (Phase 11)
+
+`POST /api/subtitles/burn/{video_id}` queues a `subtitle_burn` job that renders subtitles permanently into the video:
+
+```text
+API request (body: {"source": "transcript"|"translation", "format": "ass"|"srt", "language"?})
+  → 409 when the video has no transcript (or no translation for the language)
+  → ProcessingJob (queued, params stored)
+  → worker: read transcript/translation segments
+  → app/video/subtitles.py builds an SRT or ASS document
+      (ASS uses a bold white / dark-outline recap style)
+  → FFmpeg libass filter burns the subtitles in (video re-encoded, audio copied)
+  → output saved to storage/outputs/<uuid>_subtitled.mp4
+  → job.output_path recorded, downloadable from GET /api/jobs/{job_id}/output
+```
+
+Key design points:
+
+- No new files are uploaded: the subtitles come from the stored transcript or translation, so what you burn is what the editor exported from.
+- The subtitle editor page has a "Burn subtitles" card (source, language, and format selectors) that calls this endpoint.
+- Empty subtitle text and unknown formats fail fast with a clear error instead of producing a broken video.
+
 ## Face detection (tracking service)
 
 `POST /api/faces/analyze/{video_id}` queues a `face_detection` job. The worker samples the video at ~2 fps, detects faces with the shared OpenCV cascade, and tracks them across frames with persistent person IDs (greedy centroid tracker in `app/ai/faces/tracker.py`). The JSON result is stored as the video's `FaceAnalysis` row and read back with `GET /api/faces/{video_id}`:

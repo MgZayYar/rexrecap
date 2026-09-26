@@ -44,7 +44,7 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
 | GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real cropped MP4. The optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`). Job responses include `has_output: true` when a download is available.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`. The `render` worker is a placeholder that simulates progress without producing output; `dubbing` produces a real dubbed MP4 and `autocrop` a real cropped MP4. The optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`). Job responses include `has_output: true` when a download is available.
 
 ## Transcripts
 
@@ -75,3 +75,9 @@ Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detectio
 | --- | --- | --- |
 | POST | `/faces/analyze/{video_id}` | Queue a `face_detection` job. Returns 201. Re-running replaces the previous analysis. |
 | GET | `/faces/{video_id}` | Return the stored `FaceAnalysis` JSON (people with persistent person IDs, timestamps, and per-frame bounding boxes). 404 when no analysis exists. |
+
+## Subtitles
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/subtitles/burn/{video_id}` | Burn subtitles into the video. Body: `{ "source": "transcript" \| "translation", "format": "ass" \| "srt", "language?" }`. 409 when the transcript (or the requested translation) is missing. Returns 201; the MP4 downloads from `GET /api/jobs/{job_id}/output`. |

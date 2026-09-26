@@ -41,9 +41,11 @@
 
 - Code-quality review: extracted the duplicated 2s job poller into `useJobPolling` (shorts/thumbnails/assistant panels); transcript and translation viewers now stop polling once the job is terminal (the transcript viewer previously polled forever); `isTerminalStatus` helper + completed `job_type` union in `lib/job.ts`; `ErrorMessage` adopted in assistant/transcript/translation error surfaces; security pass confirmed ownership checks on all new routes, defensive path resolution on the thumbnail image endpoint, and sanitized upload filenames.
 
-## Next
+- Phase 28: full end-to-end verification — fresh DB (migrations 0001–0014), real API + real standalone worker: register → upload → autocrop → vertical 202×360 MP4 download; batch of 2 thumbnail jobs → summary completed with 8 candidates; `/health` and `/openapi.json` live. 13/13 checks passed. Wrote `docs/release-notes.md` with honest caveats (no live OpenAI call, no Docker build, Edge TTS WS untested in sandbox).
 
-- Phase 28: final end-to-end verification and release notes.
+## Status
+
+All planned phases complete. The app is feature-complete for the solo-creator recap workflow.
 
 ## Scoped out
 

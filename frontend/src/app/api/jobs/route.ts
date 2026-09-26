@@ -16,3 +16,10 @@ export async function POST(request: Request) {
   });
   return proxyJson(response, 201);
 }
+
+export async function GET(request: Request) {
+  if (!(await getAuthToken())) return unauthorized();
+
+  const query = new URL(request.url).search;
+  return proxyJson(await backendFetchWithAuth(`/jobs${query}`));
+}

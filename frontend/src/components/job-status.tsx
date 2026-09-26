@@ -1,46 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 import { estimatedState, type ProcessingJob } from "@/lib/job";
 
-type JobStatusProps = { videoId: number };
+type JobStatusProps = {
+  job: ProcessingJob | null;
+  onChanged: () => void;
+};
 
-export function JobStatus({ videoId }: JobStatusProps) {
-  const [job, setJob] = useState<ProcessingJob | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+/** Presentational job row. Polling is owned by the parent (one request for
+ *  all videos) so N dashboard rows don't each run their own poller. */
+export function JobStatus({ job, onChanged }: JobStatusProps) {
   const [isActing, setIsActing] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      const jobs = await apiGet<ProcessingJob[]>(`/api/jobs/video/${videoId}`);
-      setJob(jobs[0] ?? null);
-    } catch {
-      // Keep the last known job on transient failures.
-    }
-  }, [videoId]);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      await refresh();
-      if (active) setIsLoading(false);
-    }
-    void load();
-    const interval = window.setInterval(() => void refresh(), 2000);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, [refresh]);
 
   async function act(action: "cancel" | "retry") {
     if (!job || isActing) return;
     setIsActing(true);
     try {
-      const updated = await apiPost<ProcessingJob>(`/api/jobs/${job.id}/${action}`);
-      setJob(updated);
+      await apiPost<ProcessingJob>(`/api/jobs/${job.id}/${action}`);
+      onChanged();
     } catch {
       // Leave the last known state; the next poll will correct it.
     } finally {
@@ -48,7 +28,6 @@ export function JobStatus({ videoId }: JobStatusProps) {
     }
   }
 
-  if (isLoading) return <span className="text-xs text-slate-500">Checking status…</span>;
   if (!job) return <span className="text-xs text-slate-500">Upload complete · Not started</span>;
 
   const color = job.status === "failed" ? "bg-red-600" : job.status === "completed" ? "bg-green-600" : "bg-slate-900";

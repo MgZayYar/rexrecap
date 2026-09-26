@@ -50,6 +50,7 @@ def list_jobs(
     db: DbSession,
     status: JobStatus | None = Query(default=None),
     video_id: int | None = Query(default=None, gt=0),
+    limit: int = Query(default=100, ge=1, le=500),
 ) -> list[ProcessingJob]:
     """List the current user's jobs, newest first, optionally filtered."""
     query = (
@@ -64,7 +65,7 @@ def list_jobs(
         if get_owned_video(db, video_id, current_user.id) is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
         query = query.where(ProcessingJob.video_id == video_id)
-    return list(db.scalars(query))
+    return list(db.scalars(query.limit(limit)))
 
 
 @router.post("/{job_id}/cancel", response_model=ProcessingJobResponse)

@@ -3,7 +3,11 @@
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.models.processing_job import ProcessingJob
+from app.models.user import User
+from app.models.video import Video
 from tests.conftest import FAKE_MP4, auth_headers, upload
 
 
@@ -58,3 +62,52 @@ def test_versioned_api_prefix_serves_projects(client: TestClient):
     listed = client.get("/api/v1/projects", headers=headers)
     assert listed.status_code == 200
     assert [p["name"] for p in listed.json()] == ["V1"]
+
+
+def test_list_jobs_limit_is_enforced(client: TestClient, db_session: Session) -> None:
+    headers = auth_headers(client, email="joblimit@example.com")
+    user = db_session.query(User).filter_by(email="joblimit@example.com").first()
+    video = Video(user_id=user.id, filename="v.mp4", stored_filename="s.mp4",
+                  content_type="video/mp4", size_bytes=10)
+    db_session.add(video)
+    db_session.flush()
+    for _ in range(5):
+        db_session.add(ProcessingJob(video_id=video.id, job_type="transcription",
+                                     status="completed", progress=100))
+    db_session.commit()
+
+    response = client.get("/api/jobs?limit=2", headers=headers)
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+    response = client.get("/api/jobs?limit=0", headers=headers)
+    assert response.status_code == 422
+
+    response = client.get("/api/jobs", headers=headers)
+    assert response.status_code == 200
+    assert len(response.json()) == 5
+
+
+def test_job_query_indexes_exist() -> None:
+    import importlib.util
+    from pathlib import Path
+
+    from sqlalchemy import create_engine, inspect
+
+    from app.db.base import Base
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    spec = importlib.util.spec_from_file_location(
+        "migration_0014", Path("alembic/versions/0014_job_query_indexes.py"))
+    migration_0014 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration_0014)
+
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            migration_0014.upgrade()
+    indexes = {idx["name"] for idx in inspect(engine).get_indexes("processing_jobs")}
+    assert "ix_processing_jobs_video_created" in indexes
+    assert "ix_processing_jobs_status_created" in indexes

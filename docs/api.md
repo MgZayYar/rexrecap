@@ -64,7 +64,7 @@ Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detectio
 | Method | Route | Description |
 | --- | --- | --- |
 | POST | `/jobs/create` | Queue a processing job for an owned video. Body: `{ video_id, job_type, params? }`. Returns 201. |
-| GET | `/jobs` | List the current user's jobs, newest first. Optional `status` and `video_id` query filters. |
+| GET | `/jobs` | List the current user's jobs, newest first. Optional `status` and `video_id` query filters, plus `limit` (default 100, max 500). |
 | GET | `/jobs/video/{video_id}` | List jobs for one owned video. |
 | GET | `/jobs/{job_id}` | One owned job. |
 | POST | `/jobs/{job_id}/cancel` | Cancel a job. Queued jobs stop immediately; a running job is aborted cooperatively at its next progress checkpoint. 409 for terminal jobs. |

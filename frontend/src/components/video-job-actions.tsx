@@ -21,7 +21,7 @@ type RenderRatio = (typeof renderRatios)[number];
 const renderSubtitleFormats = ["off", "ass", "srt"] as const;
 type RenderSubtitleFormat = (typeof renderSubtitleFormats)[number];
 
-export function VideoJobActions({ videoId }: { videoId: number }) {
+export function VideoJobActions({ videoId, onJobStarted }: { videoId: number; onJobStarted?: () => void }) {
   const [starting, setStarting] = useState<ProcessingJob["job_type"] | null>(null);
   const [ratio, setRatio] = useState<AutocropRatio>("9:16");
   const [renderRatio, setRenderRatio] = useState<RenderRatio>("off");
@@ -48,6 +48,7 @@ export function VideoJobActions({ videoId }: { videoId: number }) {
       const label = actions.find((action) => action.jobType === jobType)?.label;
       const detail = jobType === "autocrop" ? ` (${ratio})` : "";
       setMessage(`${label}${detail} job queued.`);
+      onJobStarted?.();
     } catch (err) {
       setMessage(toMessage(err, "Unable to start job."));
     } finally {

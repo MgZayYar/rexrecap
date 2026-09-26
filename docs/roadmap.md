@@ -35,9 +35,11 @@
 
 - API reference: rewrote `docs/api.md` to cover every router (auth, health, projects, videos + resumable uploads, processing jobs, notifications, batch, thumbnails, recap assistant, shorts, transcripts, translations, dubbing, faces, subtitles), added `tests/test_openapi.py` proving the schema builds with unique operation IDs and both `/api/v1` + `/api` prefixes in parity.
 
+- Performance: migration 0014 adds composite indexes `processing_jobs(video_id, created_at)` and `processing_jobs(status, created_at)` — verified via EXPLAIN QUERY PLAN that the per-video job list and the runner's oldest-queued claim both use them. `GET /jobs` now takes a bounded `limit` (default 100, max 500). Dashboard polling consolidated: one `/api/jobs` request every 3s replaces N per-row 2s pollers (JobStatus is now presentational; VideoJobActions triggers an immediate refresh after queueing).
+
 ## Next
 
-- Performance optimization pass (query profiling, upload/download throughput, worker throughput).
+- UI polish pass (loading states, empty states, error surfaces).
 
 ## Scoped out
 

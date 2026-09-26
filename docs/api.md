@@ -53,6 +53,12 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/jobs/{job_id}` | One owned job. |
 | POST | `/jobs/{job_id}/cancel` | Cancel a job. Queued jobs stop immediately; a running job is aborted cooperatively at its next progress checkpoint. 409 for terminal jobs. |
 | POST | `/jobs/{job_id}/retry` | Requeue a failed or cancelled job. 409 for anything else. |
+| POST | `/notifications/settings` | Create an email/webhook job alert (channel, target, events, enabled). |
+| GET | `/notifications/settings` | List my notification settings. |
+| PATCH | `/notifications/settings/{setting_id}` | Update target, events, or enabled. |
+| DELETE | `/notifications/settings/{setting_id}` | Delete a setting. |
+| POST | `/notifications/settings/{setting_id}/test` | Send a test ping through the setting. |
+
 | GET | `/jobs/{job_id}/output` | Download the job's output file. When the output was synced to object storage (`STORAGE_BACKEND=s3`), responds 302 to a presigned URL instead of streaming. |
 | GET | `/jobs/workers` | Worker heartbeats: `worker_id`, `started_at`, `last_seen`, `current_job_id`, and computed `is_live`. |
 

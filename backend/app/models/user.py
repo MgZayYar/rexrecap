@@ -14,5 +14,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     videos: Mapped[list["Video"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+    notification_settings: Mapped[list["NotificationSetting"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan")
     projects: Mapped[list["Project"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     upload_sessions: Mapped[list["UploadSession"]] = relationship(back_populates="owner", cascade="all, delete-orphan")

@@ -27,6 +27,7 @@ from app.core.config import OUTPUTS_DIR, WORKER_POLL_INTERVAL
 from app.db.session import SessionLocal
 from app.models.processing_job import ProcessingJob
 from app.models.worker_heartbeat import WorkerHeartbeat, new_worker_id
+from app.services.notifications import dispatch_job_notifications
 from app.workers.jobs import JOB_HANDLERS
 
 logger = logging.getLogger("rexcrop.worker")
@@ -106,12 +107,21 @@ def _finish_cancelled(job_id: int) -> None:
             db.commit()
 
 
+async def _notify_job_finished(job_id: int) -> None:
+    """Dispatch email/webhook notifications; never fails the job."""
+    try:
+        await asyncio.to_thread(dispatch_job_notifications, job_id)
+    except Exception:
+        logger.exception("job %s: notification dispatch failed", job_id)
+
+
 async def process_claimed_job(job_id: int, job_type: str) -> None:
     """Run one claimed job's handler and record its terminal state."""
     logger.info("processing job %s (%s)", job_id, job_type)
     if _cancel_requested(job_id):
         logger.info("job %s was cancelled before it started", job_id)
         _finish_cancelled(job_id)
+        await _notify_job_finished(job_id)
         return
     try:
         handler = JOB_HANDLERS[job_type]
@@ -119,6 +129,7 @@ async def process_claimed_job(job_id: int, job_type: str) -> None:
     except JobCancelled:
         logger.info("job %s cancelled", job_id)
         _finish_cancelled(job_id)
+        await _notify_job_finished(job_id)
         return
     except Exception as exc:
         logger.exception("job %s failed", job_id)
@@ -129,6 +140,7 @@ async def process_claimed_job(job_id: int, job_type: str) -> None:
                 job.error_message = str(exc)[:1000]
                 job.finished_at = datetime.now(UTC)
                 db.commit()
+        await _notify_job_finished(job_id)
         return
     with SessionLocal() as db:
         job = db.get(ProcessingJob, job_id)
@@ -138,6 +150,7 @@ async def process_claimed_job(job_id: int, job_type: str) -> None:
             job.finished_at = datetime.now(UTC)
             db.commit()
     _sync_output_to_remote(job_id)
+    await _notify_job_finished(job_id)
     logger.info("job %s completed", job_id)
 
 

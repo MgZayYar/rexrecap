@@ -23,4 +23,5 @@ class Video(Base):
     owner: Mapped["User"] = relationship(back_populates="videos")
     project: Mapped["Project | None"] = relationship(back_populates="videos")
     processing_jobs: Mapped[list["ProcessingJob"]] = relationship(back_populates="video", cascade="all, delete-orphan")
+    short_clips: Mapped[list["ShortClip"]] = relationship(back_populates="video", cascade="all, delete-orphan")
     transcript: Mapped["Transcript | None"] = relationship(back_populates="video", cascade="all, delete-orphan", uselist=False)

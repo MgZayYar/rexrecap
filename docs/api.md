@@ -56,7 +56,15 @@ Projects are user-owned containers that group a user's work. Every project route
 | GET | `/jobs/{job_id}/output` | Download the job's output file. |
 | GET | `/jobs/workers` | Worker heartbeats: `worker_id`, `started_at`, `last_seen`, `current_job_id`, and computed `is_live`. |
 
-Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`. The `render` worker assembles the final delivery MP4 (`<uuid>_render.mp4`); the optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`), and the render worker reads `params.aspect_ratio` (smart-crop stage), `params.burn_subtitles` (`"ass"`/`"srt"`), `params.subtitle_source` (`"transcript"`/`"translation"`), `params.language`, and `params.use_dubbed_audio` (replaces the audio track with the video's latest completed dubbing output). Job responses include `has_output: true` when a download is available.
+Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`, `shorts`. The `render` worker assembles the final delivery MP4 (`<uuid>_render.mp4`); the optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`), and the render worker reads `params.aspect_ratio` (smart-crop stage), `params.burn_subtitles` (`"ass"`/`"srt"`), `params.subtitle_source` (`"transcript"`/`"translation"`), `params.language`, and `params.use_dubbed_audio` (replaces the audio track with the video's latest completed dubbing output). Job responses include `has_output: true` when a download is available.
+
+## Shorts
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/shorts/generate/{video_id}` | Detect highlight moments and queue a `shorts` job. Body: `{ count, clip_duration, aspect_ratio, burn_subtitles, subtitle_source, language? }`. Returns 201. |
+| GET | `/shorts/video/{video_id}` | List generated clips for an owned video: `start_time`, `end_time`, `score`, `duration`. |
+| GET | `/shorts/{clip_id}/download` | Download one clip as MP4. |
 
 ## Transcripts
 

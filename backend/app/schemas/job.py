@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-JobType = Literal["transcription", "translation", "dubbing", "autocrop", "face_detection", "subtitle_burn", "render"]
+JobType = Literal["transcription", "translation", "dubbing", "autocrop", "face_detection", "subtitle_burn", "render", "shorts"]
 JobStatus = Literal["queued", "processing", "completed", "failed", "cancelled"]
 
 

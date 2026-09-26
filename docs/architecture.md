@@ -34,6 +34,7 @@ backend/
     ├── schemas/        # Pydantic request/response contracts
     ├── services/
     │   ├── jobs.py     # Job creation + enqueue (transaction-safe variants)
+    │   ├── storage.py  # Per-user storage quota accounting
     │   └── ...         # Domain services (languages, translation, ...)
     ├── video/          # Storage and media-processing boundary (ffmpeg)
     └── workers/        # Standalone worker process + job handlers

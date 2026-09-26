@@ -21,6 +21,7 @@ Copy `backend/.env.example` to `backend/.env` to override defaults (never commit
 DATABASE_URL=<redacted>
 JWT_SECRET_KEY=<a long random string>
 MAX_UPLOAD_BYTES=2147483648
+USER_STORAGE_QUOTA_BYTES=10737418240
 ```
 
 Run the API:

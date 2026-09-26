@@ -6,11 +6,13 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
-from app.core.config import MAX_UPLOAD_BYTES, UPLOADS_DIR
+from app.core.config import MAX_UPLOAD_BYTES, UPLOADS_DIR, USER_STORAGE_QUOTA_BYTES
 from app.models.video import Video
 from app.repositories.projects import get_owned_project
 from app.repositories.videos import get_owned_video
+from app.schemas.upload import QuotaResponse
 from app.schemas.video import VideoResponse, VideoUpdate
+from app.services.storage import storage_usage_bytes
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 
@@ -45,6 +47,7 @@ async def upload_video(
     stored_filename = f"{uuid4().hex}{extension}"
     destination = UPLOADS_DIR / stored_filename
     size_bytes = 0
+    quota_baseline = storage_usage_bytes(db, current_user.id)
 
     try:
         with destination.open("wb") as output:
@@ -54,6 +57,11 @@ async def upload_video(
                     raise HTTPException(
                         status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                         detail=f"Video exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB upload limit",
+                    )
+                if quota_baseline + size_bytes > USER_STORAGE_QUOTA_BYTES:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=f"Storage quota exceeded ({USER_STORAGE_QUOTA_BYTES // (1024**3)} GB per user)",
                     )
                 output.write(chunk)
         if size_bytes == 0:
@@ -82,6 +90,16 @@ async def upload_video(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to save video") from exc
     finally:
         await file.close()
+
+
+@router.get("/quota", response_model=QuotaResponse)
+def get_quota(current_user: CurrentUser, db: DbSession) -> QuotaResponse:
+    used = storage_usage_bytes(db, current_user.id)
+    return QuotaResponse(
+        quota_bytes=USER_STORAGE_QUOTA_BYTES,
+        used_bytes=used,
+        available_bytes=max(USER_STORAGE_QUOTA_BYTES - used, 0),
+    )
 
 
 @router.get("", response_model=list[VideoResponse])

@@ -31,7 +31,13 @@ Projects are user-owned containers that group a user's work. Every project route
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. Optional `project_id` form field assigns the video to an owned project. Enforces the `MAX_UPLOAD_BYTES` limit (413 when exceeded). Returns 201. |
+| POST | `/videos/upload` | Upload an owned MP4, MOV, MKV, or AVI file as multipart field `file`. Optional `project_id` form field assigns the video to an owned project. Enforces the `MAX_UPLOAD_BYTES` limit and the per-user storage quota (413 when exceeded). Returns 201. |
+| GET | `/videos/quota` | The current user's storage usage: `{ quota_bytes, used_bytes, available_bytes }`. |
+| POST | `/videos/uploads` | Start a resumable upload session. Body: `{ filename, content_type, total_bytes, project_id? }`. Validates the quota up front. Returns 201 with the session (offset 0). |
+| GET | `/videos/uploads/{upload_id}` | Read the session, including the server-confirmed `received_bytes` offset for resuming. |
+| PATCH | `/videos/uploads/{upload_id}` | Append one chunk (raw body) with the `Upload-Offset` header matching the server offset. 409 on offset mismatch (re-read the session and continue). Returns the updated session. |
+| POST | `/videos/uploads/{upload_id}/complete` | Finalize a fully-received session into a video. Returns 201. |
+| DELETE | `/videos/uploads/{upload_id}` | Abort a session and delete the partial file. |
 | GET | `/videos` | List the current user's videos. |
 | PATCH | `/videos/{video_id}` | Assign, move, or unassign a video's project. Body: `{ "project_id": number | null }`; omitting the field leaves the assignment unchanged. 404 for a foreign project. |
 | GET | `/videos/{video_id}/download` | Download an owned video. |

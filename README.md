@@ -18,6 +18,7 @@ RexCrop/
 - `docs/database.md` — entities and Alembic migrations
 - `docs/development.md` — setup, checks, and conventions
 - `docs/roadmap.md` — what's done and what's next
+- `docs/deployment.md` — Docker images, compose stack, production checklist
 
 ## Prerequisites
 

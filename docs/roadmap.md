@@ -24,9 +24,17 @@
 - Object storage delivery: S3-compatible backend (boto3) for job outputs and clips; the runner syncs finished outputs and the download endpoints 302-redirect to presigned URLs so large media never flows through the API (`STORAGE_BACKEND=s3`, `S3_BUCKET`, `S3_ENDPOINT_URL`, credentials via env)
 - Representative backend (pytest) and frontend (Vitest) test suites
 
+## Done (recent)
+
+- Production deployment configuration: backend + frontend Dockerfiles, `docker-compose.yml` (api/worker/web, optional MinIO profile), unauthenticated `GET /health` probe with DB + storage checks, env-overridable storage dirs, SQLite WAL mode for concurrent api/worker writes, root `.env.example`, `docs/deployment.md` production checklist.
+
 ## Next
 
-- Add organization/workspace roles and production deployment configuration.
+- Advanced editing workflows (thumbnails).
+
+## Scoped out
+
+- Organization/workspace roles: deliberately not built. RexCrop is a single-creator personal tool; multi-tenant roles would rewrite every ownership check in the API for no benefit to the actual workflow. If sharing ever becomes real, the natural seam is the per-route `*_user_id == current_user.id` ownership checks.
 
 ## Later
 

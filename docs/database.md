@@ -39,7 +39,7 @@ cd backend
 | `Transcript` | Whisper output | One record per video. |
 | `Translation` | OpenAI translation output | Belongs to one transcript and one processing job; unique per target language. |
 
-`videos.project_id` is a nullable foreign key to `projects.id` with `ON DELETE SET NULL`: deleting a project keeps its videos, which become unassigned. SQLite enforces foreign-key actions only with `PRAGMA foreign_keys=ON`, which the app enables on every connection.
+`videos.project_id` is a nullable foreign key to `projects.id` with `ON DELETE SET NULL`: deleting a project keeps its videos, which become unassigned. SQLite enforces foreign-key actions only with `PRAGMA foreign_keys=ON`, which the app enables on every connection. It also enables WAL journal mode so the API and the standalone worker can write concurrently without lock contention.
 
 ## ProcessingJob
 

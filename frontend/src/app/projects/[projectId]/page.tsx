@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { backendFetchWithAuth } from "@/lib/server-backend";
 import { getServerSession } from "@/lib/server-auth";
 import { formatFileSize, type Project, type Video } from "@/lib/video";
@@ -35,8 +36,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <section className="mt-8">
         <h2 className="text-xl font-semibold">Videos in this project</h2>
         {videos.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-slate-600">
-            No videos in this project yet. Assign videos from the dashboard, or pick this project when uploading.
+          <div className="mt-4">
+            <EmptyState>No videos in this project yet. Assign videos from the dashboard, or pick this project when uploading.</EmptyState>
           </div>
         ) : (
           <ul className="mt-4 space-y-3">

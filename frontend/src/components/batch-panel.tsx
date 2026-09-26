@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState, LoadingState } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/input";
 import { apiGet, apiPost, toMessage } from "@/lib/api-client";
 import { formatFileSize, type Video } from "@/lib/video";
@@ -72,6 +73,7 @@ export function BatchPanel() {
   const [expanded, setExpanded] = useState<Record<number, BatchDetail>>({});
   const [starting, setStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
@@ -83,6 +85,8 @@ export function BatchPanel() {
       setBatches(batchList);
     } catch {
       /* keep previous state */
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -140,6 +144,10 @@ export function BatchPanel() {
     } catch {
       /* keep collapsed */
     }
+  }
+
+  if (isLoading) {
+    return <LoadingState label="Loading videos and batches…" />;
   }
 
   return (
@@ -204,9 +212,7 @@ export function BatchPanel() {
         <p className="mt-1 text-sm text-slate-600">Progress across the group. Open a run for per-video status.</p>
         <div className="mt-4 grid gap-3">
           {batches.length === 0 && (
-            <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-600">
-              No batch runs yet.
-            </p>
+            <EmptyState>No batch runs yet.</EmptyState>
           )}
           {batches.map((batch) => {
             const done = batch.summary.completed + batch.summary.failed + batch.summary.cancelled;

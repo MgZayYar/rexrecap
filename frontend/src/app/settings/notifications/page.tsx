@@ -7,6 +7,7 @@ import {
   type NotificationSetting,
 } from "@/components/notification-settings";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { backendFetchWithAuth } from "@/lib/server-backend";
 import { getServerSession } from "@/lib/server-auth";
 
@@ -37,9 +38,7 @@ export default async function NotificationsPage() {
         <NotificationCreateForm />
         <div>
           {settings.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-slate-600">
-              No alerts yet. Add an email address or a webhook URL to get notified.
-            </div>
+            <EmptyState>No alerts yet. Add an email address or a webhook URL to get notified.</EmptyState>
           ) : (
             <ul className="space-y-3">
               {settings.map((setting) => (

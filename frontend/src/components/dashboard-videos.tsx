@@ -6,6 +6,7 @@ import { JobStatus } from "@/components/job-status";
 import { VideoJobActions } from "@/components/video-job-actions";
 import { VideoProjectAssign } from "@/components/video-project-assign";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { apiGet } from "@/lib/api-client";
 import type { ProcessingJob } from "@/lib/job";
 import { formatFileSize, type Video } from "@/lib/video";
@@ -40,11 +41,7 @@ export function DashboardVideos({ videos }: { videos: Video[] }) {
   }, [refresh]);
 
   if (videos.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-slate-300 p-8 text-slate-600">
-        No videos uploaded yet. Upload your first video to get started.
-      </div>
-    );
+    return <EmptyState>No videos uploaded yet. Upload your first video to get started.</EmptyState>;
   }
 
   return (

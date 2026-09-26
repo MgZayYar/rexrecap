@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/input";
 import { apiGet, apiPost, toMessage } from "@/lib/api-client";
 import type { ProcessingJob } from "@/lib/job";
@@ -162,9 +163,9 @@ export function ThumbnailsPanel({ videoId }: { videoId: number }) {
       )}
 
       {candidates.length === 0 && !running && (
-        <p className="mt-6 rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-600">
-          No thumbnails yet. Generate candidates and pick the one that will sell the recap.
-        </p>
+        <div className="mt-6">
+          <EmptyState>No thumbnails yet. Generate candidates and pick the one that will sell the recap.</EmptyState>
+        </div>
       )}
     </div>
   );

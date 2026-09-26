@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { ProjectCreateForm } from "@/components/project-create-form";
 import { ProjectDeleteButton } from "@/components/project-delete-button";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { backendFetchWithAuth } from "@/lib/server-backend";
 import { getServerSession } from "@/lib/server-auth";
 import type { Project } from "@/lib/video";
@@ -32,9 +33,7 @@ export default async function ProjectsPage() {
         <ProjectCreateForm />
         <div>
           {projects.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-slate-600">
-              No projects yet. Create one to start grouping videos.
-            </div>
+            <EmptyState>No projects yet. Create one to start grouping videos.</EmptyState>
           ) : (
             <ul className="space-y-3">
               {projects.map((project) => (

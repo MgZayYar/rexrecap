@@ -37,9 +37,11 @@
 
 - Performance: migration 0014 adds composite indexes `processing_jobs(video_id, created_at)` and `processing_jobs(status, created_at)` — verified via EXPLAIN QUERY PLAN that the per-video job list and the runner's oldest-queued claim both use them. `GET /jobs` now takes a bounded `limit` (default 100, max 500). Dashboard polling consolidated: one `/api/jobs` request every 3s replaces N per-row 2s pollers (JobStatus is now presentational; VideoJobActions triggers an immediate refresh after queueing).
 
+- UI polish: shared `LoadingState` / `EmptyState` / `ErrorMessage` primitives (`src/components/ui/feedback.tsx`); batch page gets a real initial loading state; dashboard, projects, notifications, batch, thumbnails, and assistant pages now use the shared empty states.
+
 ## Next
 
-- UI polish pass (loading states, empty states, error surfaces).
+- Final code-quality review (dead code, duplication, security pass).
 
 ## Scoped out
 

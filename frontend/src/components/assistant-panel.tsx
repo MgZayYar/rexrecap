@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/feedback";
 import { apiGet, apiPost, toMessage } from "@/lib/api-client";
 import type { ProcessingJob } from "@/lib/job";
 
@@ -200,9 +201,9 @@ export function AssistantPanel({ videoId }: { videoId: number }) {
       </div>
 
       {drafts.length === 0 && !running && (
-        <p className="mt-6 rounded-lg border border-dashed border-slate-300 p-8 text-center text-slate-600">
-          No drafts yet. Generate one from the transcript and it will appear here.
-        </p>
+        <div className="mt-6">
+          <EmptyState>No drafts yet. Generate one from the transcript and it will appear here.</EmptyState>
+        </div>
       )}
     </div>
   );

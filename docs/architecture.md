@@ -58,7 +58,7 @@ Alembic owns the schema. At startup the app runs `alembic upgrade head`, which c
 
 ### Background jobs
 
-Job execution runs in a separate worker process, not in the API process. `python -m app.workers.runner` polls the `processing_jobs` table — the durable queue — and claims the oldest queued job with a single atomic `UPDATE ... RETURNING` statement, so any number of workers can run against the same database without double-processing. At startup it requeues jobs left in `processing` by a crashed worker. This keeps local development infrastructure-free; production can run the same worker image scaled horizontally.
+Job execution runs in a separate worker process, not in the API process. `python -m app.workers.runner` polls the `processing_jobs` table — the durable queue — and claims the oldest queued job with a single atomic `UPDATE ... RETURNING` statement, so any number of workers can run against the same database without double-processing. At startup it requeues jobs left in `processing` by a crashed worker. While alive, each worker refreshes a `worker_heartbeats` row every poll cycle (plus the job it is currently running), so the API can report worker liveness. Cancellation is cooperative: `POST /jobs/{id}/cancel` sets `cancel_requested` on a running job and the worker aborts it at its next progress checkpoint; queued jobs are cancelled immediately. Failed or cancelled jobs can be requeued with `POST /jobs/{id}/retry`. This keeps local development infrastructure-free; production can run the same worker image scaled horizontally.
 
 ## Frontend
 

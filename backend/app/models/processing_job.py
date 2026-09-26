@@ -23,5 +23,7 @@ class ProcessingJob(Base):
     """Relative path under storage/outputs/ for jobs that produce a file."""
     params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     """Per-job worker options, e.g. dubbing voice/provider."""
+    cancel_requested: Mapped[bool] = mapped_column(nullable=False, default=False)
+    """Cooperative cancel flag: the worker aborts the job at its next progress check."""
 
     video: Mapped["Video"] = relationship(back_populates="processing_jobs")

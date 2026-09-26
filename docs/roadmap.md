@@ -18,13 +18,14 @@
 - AI voice dubbing: Edge TTS (default) or OpenAI TTS per transcript/translation segments, mixed over the original audio ducked to 15%
 - Real render pipeline: composable assembly of smart-crop + burned subtitles + dubbed audio into one delivery MP4
 - Resumable chunked uploads (server-confirmed offsets, automatic client resume) with a per-user storage quota (`USER_STORAGE_QUOTA_BYTES`, default 10 GB)
+- Job cancellation (cooperative, at progress checkpoints) and retry, worker heartbeats with a live/offline dashboard badge, and a filterable jobs list
 - Representative backend (pytest) and frontend (Vitest) test suites
 
 ## Next
 
 - Highlight-clip shorts generation (scene/audio-moment detection → multiple vertical clips).
 - Add object storage and background delivery for large media files.
-- Add job cancellation, retry, observability, and notifications.
+- Add job notifications (email/webhook) for completed and failed jobs.
 - Add organization/workspace roles and production deployment configuration.
 
 ## Later

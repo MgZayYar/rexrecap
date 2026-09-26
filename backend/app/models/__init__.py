@@ -5,5 +5,7 @@ from app.models.translation import Translation
 from app.models.upload_session import UploadSession
 from app.models.user import User
 from app.models.video import Video
+from app.models.worker_heartbeat import WorkerHeartbeat
 
-__all__ = ["ProcessingJob", "Project", "Transcript", "Translation", "UploadSession", "User", "Video"]
+__all__ = ["ProcessingJob", "Project", "Transcript", "Translation", "UploadSession", "User", "Video",
+           "WorkerHeartbeat"]

@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, status
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -6,8 +8,9 @@ from app.api.deps import CurrentUser, DbSession
 from app.core.config import OUTPUTS_DIR
 from app.models.processing_job import ProcessingJob
 from app.models.video import Video
+from app.models.worker_heartbeat import WorkerHeartbeat
 from app.repositories.videos import get_owned_video
-from app.schemas.job import CreateJobRequest, ProcessingJobResponse
+from app.schemas.job import CreateJobRequest, JobStatus, ProcessingJobResponse, WorkerHeartbeatResponse
 from app.services.jobs import create_job as queue_processing_job
 
 router = APIRouter(prefix="/jobs", tags=["processing jobs"])
@@ -38,6 +41,76 @@ def list_video_jobs(video_id: int, current_user: CurrentUser, db: DbSession) -> 
     if video is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
     return list(db.scalars(select(ProcessingJob).where(ProcessingJob.video_id == video.id).order_by(ProcessingJob.created_at.desc())))
+
+
+@router.get("", response_model=list[ProcessingJobResponse])
+def list_jobs(
+    current_user: CurrentUser,
+    db: DbSession,
+    status: JobStatus | None = Query(default=None),
+    video_id: int | None = Query(default=None, gt=0),
+) -> list[ProcessingJob]:
+    """List the current user's jobs, newest first, optionally filtered."""
+    query = (
+        select(ProcessingJob)
+        .join(Video)
+        .where(Video.user_id == current_user.id)
+        .order_by(ProcessingJob.created_at.desc(), ProcessingJob.id.desc())
+    )
+    if status is not None:
+        query = query.where(ProcessingJob.status == status)
+    if video_id is not None:
+        if get_owned_video(db, video_id, current_user.id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
+        query = query.where(ProcessingJob.video_id == video_id)
+    return list(db.scalars(query))
+
+
+@router.post("/{job_id}/cancel", response_model=ProcessingJobResponse)
+def cancel_job(job_id: int, current_user: CurrentUser, db: DbSession) -> ProcessingJob:
+    """Cancel a job.
+
+    Queued jobs are cancelled immediately. A running job is asked to stop
+    cooperatively: the worker aborts it at its next progress checkpoint.
+    """
+    job = get_owned_job(job_id, current_user, db)
+    if job.status == "queued":
+        job.status = "cancelled"
+        job.finished_at = datetime.now(UTC)
+    elif job.status == "processing":
+        job.cancel_requested = True
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot cancel a job that is {job.status}")
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+@router.post("/{job_id}/retry", response_model=ProcessingJobResponse)
+def retry_job(job_id: int, current_user: CurrentUser, db: DbSession) -> ProcessingJob:
+    """Requeue a failed or cancelled job."""
+    job = get_owned_job(job_id, current_user, db)
+    if job.status not in ("failed", "cancelled"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot retry a job that is {job.status}")
+    job.status = "queued"
+    job.progress = 0
+    job.error_message = None
+    job.cancel_requested = False
+    job.started_at = None
+    job.finished_at = None
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+@router.get("/workers", response_model=list[WorkerHeartbeatResponse])
+def list_workers(current_user: CurrentUser, db: DbSession) -> list[WorkerHeartbeat]:
+    """Worker processes that have checked in recently."""
+    return list(db.scalars(select(WorkerHeartbeat).order_by(WorkerHeartbeat.last_seen.desc())))
 
 
 @router.get("/{job_id}", response_model=ProcessingJobResponse)

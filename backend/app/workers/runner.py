@@ -19,16 +19,21 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 
 from app.core.config import WORKER_POLL_INTERVAL
 from app.db.session import SessionLocal
 from app.models.processing_job import ProcessingJob
+from app.models.worker_heartbeat import WorkerHeartbeat, new_worker_id
 from app.workers.jobs import JOB_HANDLERS
 
 logger = logging.getLogger("rexcrop.worker")
+
+
+class JobCancelled(Exception):
+    """Raised inside a worker when the user cancels the running job."""
 
 
 def claim_next_job() -> tuple[int, str] | None:
@@ -71,7 +76,20 @@ def recover_interrupted_jobs() -> int:
         return result.rowcount
 
 
+def _cancel_requested(job_id: int) -> bool:
+    with SessionLocal() as db:
+        job = db.get(ProcessingJob, job_id)
+        return bool(job is not None and job.cancel_requested)
+
+
 async def _report_progress(job_id: int, progress: int) -> None:
+    """Record progress; raises JobCancelled when the user cancelled the job.
+
+    Every handler reports progress at stage boundaries, so cancellation is
+    honored as soon as the current stage finishes.
+    """
+    if _cancel_requested(job_id):
+        raise JobCancelled(f"job {job_id} cancelled by user")
     with SessionLocal() as db:
         job = db.get(ProcessingJob, job_id)
         if job is not None and job.status == "processing":
@@ -79,12 +97,29 @@ async def _report_progress(job_id: int, progress: int) -> None:
             db.commit()
 
 
+def _finish_cancelled(job_id: int) -> None:
+    with SessionLocal() as db:
+        job = db.get(ProcessingJob, job_id)
+        if job is not None:
+            job.status = "cancelled"
+            job.finished_at = datetime.now(UTC)
+            db.commit()
+
+
 async def process_claimed_job(job_id: int, job_type: str) -> None:
     """Run one claimed job's handler and record its terminal state."""
     logger.info("processing job %s (%s)", job_id, job_type)
+    if _cancel_requested(job_id):
+        logger.info("job %s was cancelled before it started", job_id)
+        _finish_cancelled(job_id)
+        return
     try:
         handler = JOB_HANDLERS[job_type]
         await handler(job_id, lambda progress: _report_progress(job_id, progress))
+    except JobCancelled:
+        logger.info("job %s cancelled", job_id)
+        _finish_cancelled(job_id)
+        return
     except Exception as exc:
         logger.exception("job %s failed", job_id)
         with SessionLocal() as db:
@@ -105,6 +140,19 @@ async def process_claimed_job(job_id: int, job_type: str) -> None:
     logger.info("job %s completed", job_id)
 
 
+def heartbeat(worker_id: str, current_job_id: int | None) -> None:
+    """Upsert this worker's heartbeat row; prune rows stale for over a day."""
+    with SessionLocal() as db:
+        row = db.get(WorkerHeartbeat, worker_id)
+        if row is None:
+            db.add(WorkerHeartbeat(worker_id=worker_id, current_job_id=current_job_id))
+        else:
+            row.current_job_id = current_job_id
+        cutoff = datetime.now(UTC) - timedelta(hours=24)
+        db.execute(delete(WorkerHeartbeat).where(WorkerHeartbeat.last_seen < cutoff))
+        db.commit()
+
+
 async def run_once() -> bool:
     """Claim and process a single job. Returns True when a job ran."""
     claimed = await asyncio.to_thread(claim_next_job)
@@ -116,21 +164,49 @@ async def run_once() -> bool:
 
 
 async def run_forever(stop_event: asyncio.Event) -> None:
+    worker_id = new_worker_id()
     recovered = await asyncio.to_thread(recover_interrupted_jobs)
     if recovered:
         logger.info("requeued %d interrupted job(s)", recovered)
-    logger.info("worker started (poll interval %.1fs)", WORKER_POLL_INTERVAL)
-    while not stop_event.is_set():
-        try:
-            processed = await run_once()
-        except Exception:
-            logger.exception("worker iteration failed")
-            processed = False
-        if not processed:
+    logger.info("worker %s started (poll interval %.1fs)", worker_id, WORKER_POLL_INTERVAL)
+    current: dict[str, int | None] = {"job_id": None}
+
+    async def heartbeat_loop() -> None:
+        while not stop_event.is_set():
+            await asyncio.to_thread(heartbeat, worker_id, current["job_id"])
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=WORKER_POLL_INTERVAL)
             except TimeoutError:
                 pass
+
+    beat_task = asyncio.create_task(heartbeat_loop())
+    try:
+        while not stop_event.is_set():
+            try:
+                claimed = await asyncio.to_thread(claim_next_job)
+            except Exception:
+                logger.exception("worker iteration failed")
+                claimed = None
+            if claimed is None:
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=WORKER_POLL_INTERVAL)
+                except TimeoutError:
+                    pass
+                continue
+            job_id, job_type = claimed
+            current["job_id"] = job_id
+            try:
+                await process_claimed_job(job_id, job_type)
+            except Exception:
+                logger.exception("worker iteration failed")
+            finally:
+                current["job_id"] = None
+    finally:
+        beat_task.cancel()
+        try:
+            await beat_task
+        except asyncio.CancelledError:
+            pass
 
 
 def main() -> None:

@@ -47,10 +47,14 @@ Projects are user-owned containers that group a user's work. Every project route
 
 | Method | Route | Description |
 | --- | --- | --- |
-| POST | `/jobs/create` | Queue a job. Body: `{ "video_id", "job_type", "params?" }`. Returns 201. |
-| GET | `/jobs/video/{video_id}` | List jobs for an owned video, newest first. |
-| GET | `/jobs/{job_id}` | Get one job (ownership-checked through its video). |
-| GET | `/jobs/{job_id}/output` | Download the file a job produced (404 when the job has no output). |
+| POST | `/jobs/create` | Queue a processing job for an owned video. Body: `{ video_id, job_type, params? }`. |
+| GET | `/jobs` | List the current user's jobs, newest first. Optional `status` and `video_id` filters. |
+| GET | `/jobs/video/{video_id}` | List jobs for one owned video. |
+| GET | `/jobs/{job_id}` | One owned job. |
+| POST | `/jobs/{job_id}/cancel` | Cancel a job. Queued jobs stop immediately; a running job is aborted cooperatively at its next progress checkpoint. 409 for terminal jobs. |
+| POST | `/jobs/{job_id}/retry` | Requeue a failed or cancelled job. 409 for anything else. |
+| GET | `/jobs/{job_id}/output` | Download the job's output file. |
+| GET | `/jobs/workers` | Worker heartbeats: `worker_id`, `started_at`, `last_seen`, `current_job_id`, and computed `is_live`. |
 
 Job types: `transcription`, `translation`, `dubbing`, `autocrop`, `face_detection`, `subtitle_burn`, `render`. The `render` worker assembles the final delivery MP4 (`<uuid>_render.mp4`); the optional `params` object carries per-job options — the autocrop worker reads `params.aspect_ratio` (`"9:16"` default, also `"1:1"` and `"4:5"`), and the render worker reads `params.aspect_ratio` (smart-crop stage), `params.burn_subtitles` (`"ass"`/`"srt"`), `params.subtitle_source` (`"transcript"`/`"translation"`), `params.language`, and `params.use_dubbed_audio` (replaces the audio track with the video's latest completed dubbing output). Job responses include `has_output: true` when a download is available.
 

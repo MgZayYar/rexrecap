@@ -3,7 +3,8 @@
 Revision ID: 0005
 Revises: 0004
 
-Idempotent: the column/constraint/index are added only when missing.
+Idempotent: the column, foreign key, and index are each added only when
+missing. Uses batch mode because SQLite cannot ALTER constraints in place.
 Deleting a project sets its videos' project_id to NULL (videos survive).
 """
 
@@ -19,22 +20,36 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _column_names(table: str) -> set[str]:
+    return {c["name"] for c in sa.inspect(op.get_bind()).get_columns(table)}
+
+
+def _fk_names(table: str) -> set[str]:
+    return {fk["name"] for fk in sa.inspect(op.get_bind()).get_foreign_keys(table) if fk["name"]}
+
+
+def _index_names(table: str) -> set[str]:
+    return {ix["name"] for ix in sa.inspect(op.get_bind()).get_indexes(table) if ix["name"]}
+
+
 def upgrade() -> None:
-    inspector = sa.inspect(op.get_bind())
-    columns = {c["name"] for c in inspector.get_columns("videos")}
-    if "project_id" not in columns:
-        op.add_column("videos", sa.Column("project_id", sa.Integer(), nullable=True))
-        op.create_foreign_key(
-            "fk_videos_project_id", "videos", "projects",
-            ["project_id"], ["id"], ondelete="SET NULL",
-        )
-        op.create_index("ix_videos_project_id", "videos", ["project_id"])
+    with op.batch_alter_table("videos", schema=None) as batch_op:
+        if "project_id" not in _column_names("videos"):
+            batch_op.add_column(sa.Column("project_id", sa.Integer(), nullable=True))
+        if "fk_videos_project_id" not in _fk_names("videos"):
+            batch_op.create_foreign_key(
+                "fk_videos_project_id", "projects",
+                ["project_id"], ["id"], ondelete="SET NULL",
+            )
+        if "ix_videos_project_id" not in _index_names("videos"):
+            batch_op.create_index("ix_videos_project_id", ["project_id"])
 
 
 def downgrade() -> None:
-    inspector = sa.inspect(op.get_bind())
-    columns = {c["name"] for c in inspector.get_columns("videos")}
-    if "project_id" in columns:
-        op.drop_index("ix_videos_project_id", table_name="videos")
-        op.drop_constraint("fk_videos_project_id", "videos", type_="foreignkey")
-        op.drop_column("videos", "project_id")
+    with op.batch_alter_table("videos", schema=None) as batch_op:
+        if "ix_videos_project_id" in _index_names("videos"):
+            batch_op.drop_index("ix_videos_project_id")
+        if "fk_videos_project_id" in _fk_names("videos"):
+            batch_op.drop_constraint("fk_videos_project_id", type_="foreignkey")
+        if "project_id" in _column_names("videos"):
+            batch_op.drop_column("project_id")

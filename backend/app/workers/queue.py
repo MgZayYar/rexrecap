@@ -1,22 +1,15 @@
-import asyncio
+"""Job queue interface.
+
+The database is the durable queue: the API persists ``ProcessingJob`` rows
+with ``status='queued'`` and the standalone worker process
+(``python -m app.workers.runner``) claims them. ``enqueue`` is therefore a
+no-op kept so job-creation code does not need to know about the transport.
+"""
 
 
-class InProcessJobQueue:
-    """Deduplicated queue for job IDs within one API process."""
-
-    def __init__(self) -> None:
-        self._queue: asyncio.Queue[int] = asyncio.Queue()
-        self._queued_ids: set[int] = set()
-
+class JobQueue:
     async def enqueue(self, job_id: int) -> None:
-        if job_id not in self._queued_ids:
-            self._queued_ids.add(job_id)
-            await self._queue.put(job_id)
-
-    async def dequeue(self) -> int:
-        job_id = await self._queue.get()
-        self._queued_ids.discard(job_id)
-        return job_id
+        """Record that a persisted job is ready; the worker polls the DB."""
 
 
-job_queue = InProcessJobQueue()
+job_queue = JobQueue()

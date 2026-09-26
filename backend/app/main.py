@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -9,8 +8,6 @@ from app.api.router import api_router
 from app.core.config import DEFAULT_JWT_SECRET_KEY, JWT_SECRET_KEY
 from app.db.migrations import run_migrations
 from app.models import ProcessingJob, Project, Transcript, Translation, User, Video  # noqa: F401 - registers model metadata
-from app.workers.queue import job_queue
-from app.workers.worker import JobWorker
 
 logger = logging.getLogger("rexcrop")
 
@@ -24,15 +21,9 @@ async def lifespan(_: FastAPI):
     # Alembic owns the schema: this converges fresh and existing databases
     # to the current revision without destroying data.
     run_migrations()
-    worker_task = asyncio.create_task(JobWorker(job_queue).run())
-    try:
-        yield
-    finally:
-        worker_task.cancel()
-        try:
-            await worker_task
-        except asyncio.CancelledError:
-            pass
+    # Jobs are processed by the standalone worker process
+    # (python -m app.workers.runner), not in the API process.
+    yield
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:

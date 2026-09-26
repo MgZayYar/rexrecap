@@ -36,7 +36,7 @@ backend/
     │   ├── jobs.py     # Job creation + enqueue (transaction-safe variants)
     │   └── ...         # Domain services (languages, translation, ...)
     ├── video/          # Storage and media-processing boundary (ffmpeg)
-    └── workers/        # In-process queue and job handlers
+    └── workers/        # Standalone worker process + job handlers
 ```
 
 ### Layering rules
@@ -57,7 +57,7 @@ Alembic owns the schema. At startup the app runs `alembic upgrade head`, which c
 
 ### Background jobs
 
-At API startup, a worker starts in the same process. It polls persisted queued jobs and handles them one at a time. This is suitable for local development; production should move job execution to a separate worker process backed by durable shared infrastructure.
+Job execution runs in a separate worker process, not in the API process. `python -m app.workers.runner` polls the `processing_jobs` table — the durable queue — and claims the oldest queued job with a single atomic `UPDATE ... RETURNING` statement, so any number of workers can run against the same database without double-processing. At startup it requeues jobs left in `processing` by a crashed worker. This keeps local development infrastructure-free; production can run the same worker image scaled horizontally.
 
 ## Frontend
 
@@ -83,5 +83,5 @@ frontend/src/
 1. The user signs in through a Next.js route handler, which exchanges credentials for a JWT and stores it in an HTTP-only cookie.
 2. Browser components call `/api/...` (Next.js) via `api-client.ts`.
 3. Route handlers attach the JWT and proxy to FastAPI (`/api/v1/...`).
-4. FastAPI validates ownership through repositories, persists via SQLAlchemy, and enqueues jobs; the worker processes them asynchronously.
+4. FastAPI validates ownership through repositories and persists via SQLAlchemy; the standalone worker process claims queued jobs from the database and processes them asynchronously.
 5. The UI polls job status and renders transcripts, translations, and the subtitle editor.

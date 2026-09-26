@@ -29,6 +29,14 @@ Run the API:
 uvicorn app.main:app --reload
 ```
 
+Run the worker (separate terminal) — it processes queued jobs from the database:
+
+```powershell
+.venv\Scripts\python -m app.workers.runner
+```
+
+`WORKER_POLL_INTERVAL` (seconds, default `2.0`) controls how often the worker polls for new jobs. You can run several worker processes against the same database; jobs are claimed atomically so none is processed twice.
+
 Open [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive API documentation. The SQLite database is created/migrated at `backend/rexcrop.db` on startup.
 
 ### Backend checks

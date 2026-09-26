@@ -33,9 +33,11 @@
 
 - Recap assistant: `recap` worker turns a finished transcript into a structured draft (title ideas, hook, timestamped story beats, key quotes) via the OpenAI Responses API with a strict JSON schema; `/videos/[id]/assistant` page renders drafts with copy-script; `recap_drafts` table (migration 0013); 409 when no transcript; honest failure when `OPENAI_API_KEY` is unset.
 
+- API reference: rewrote `docs/api.md` to cover every router (auth, health, projects, videos + resumable uploads, processing jobs, notifications, batch, thumbnails, recap assistant, shorts, transcripts, translations, dubbing, faces, subtitles), added `tests/test_openapi.py` proving the schema builds with unique operation IDs and both `/api/v1` + `/api` prefixes in parity.
+
 ## Next
 
-- API reference documentation.
+- Performance optimization pass (query profiling, upload/download throughput, worker throughput).
 
 ## Scoped out
 
